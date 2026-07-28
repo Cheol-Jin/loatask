@@ -6,7 +6,10 @@ public record LostArkCharacterResponse(
         Long id,
         String characterName,
         String jobName,
-        Integer itemLevel
+        Integer itemLevel,
+        String serverName,
+        String characterImage,
+        Integer expeditionLevel
 ) {
 
     public static LostArkCharacterResponse from(LostArkCharacter character) {
@@ -14,7 +17,10 @@ public record LostArkCharacterResponse(
                 character.getId(),
                 character.getCharacterName(),
                 character.getJobName(),
-                character.getItemLevel()
+                character.getItemLevel(),
+                character.getServerName(),
+                character.getCharacterImage(),
+                character.getExpeditionLevel()
         );
     }
 }

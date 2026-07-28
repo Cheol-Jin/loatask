@@ -23,16 +23,56 @@ public class LostArkCharacter {
 
     private Integer itemLevel;
 
+    private String serverName;
+
+    private String characterImage;
+
+    private Integer expeditionLevel;
+
     public LostArkCharacter(String characterName, String jobName, Integer itemLevel) {
         this.characterName = characterName;
         this.jobName = jobName;
         this.itemLevel = itemLevel;
     }
 
+    public LostArkCharacter(
+            String characterName,
+            String jobName,
+            Integer itemLevel,
+            String serverName,
+            String characterImage,
+            Integer expeditionLevel
+    ) {
+        this.characterName = characterName;
+        this.jobName = jobName;
+        this.itemLevel = itemLevel;
+        this.serverName = serverName;
+        this.characterImage = characterImage;
+        this.expeditionLevel = expeditionLevel;
+    }
+
+
+
     public void update(String characterName, String jobName, Integer itemLevel) {
         this.characterName = characterName;
         this.jobName = jobName;
         this.itemLevel = itemLevel;
+    }
+
+    public void updateFromProfile(
+            String characterName,
+            String jobName,
+            Integer itemLevel,
+            String serverName,
+            String characterImage,
+            Integer expeditionLevel
+    ) {
+        this.characterName = characterName;
+        this.jobName = jobName;
+        this.itemLevel = itemLevel;
+        this.serverName = serverName;
+        this.characterImage = characterImage;
+        this.expeditionLevel = expeditionLevel;
     }
 
     public static interface LostArkCharacterRepository extends JpaRepository<LostArkCharacter, Long> {

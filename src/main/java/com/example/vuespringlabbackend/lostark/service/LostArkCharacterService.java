@@ -1,5 +1,6 @@
 package com.example.vuespringlabbackend.lostark.service;
 
+import com.example.vuespringlabbackend.lostark.api.LostArkOpenApiClient;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterCreateRequest;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterResponse;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterUpdateRequest;
@@ -8,6 +9,9 @@ import com.example.vuespringlabbackend.lostark.repository.LostArkCharacterReposi
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.vuespringlabbackend.lostark.api.LostArkOpenApiClient;
+import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterImportRequest;
+import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
 
 import java.util.List;
 
@@ -16,6 +20,8 @@ import java.util.List;
 public class LostArkCharacterService {
 
     private final LostArkCharacterRepository characterRepository;
+
+    private final LostArkOpenApiClient lostArkOpenApiClient;
 
     @Transactional
     public LostArkCharacterResponse createCharacter(LostArkCharacterCreateRequest request) {
@@ -66,5 +72,45 @@ public class LostArkCharacterService {
                 .orElseThrow(() -> new IllegalArgumentException("캐릭터를 찾을 수 없습니다. id=" + id));
 
         characterRepository.delete(character);
+    }
+
+    @Transactional
+    public LostArkCharacterResponse importCharacter(LostArkCharacterImportRequest request) {
+        LostArkProfileResponse profile = lostArkOpenApiClient.getCharacterProfile(request.characterName());
+
+        Integer itemLevel = parseItemLevel(profile.itemAvgLevel());
+
+        LostArkCharacter character = characterRepository.findByCharacterName(profile.characterName())
+                .map(existingCharacter -> {
+                    existingCharacter.updateFromProfile(
+                            profile.characterName(),
+                            profile.characterClassName(),
+                            itemLevel,
+                            profile.serverName(),
+                            profile.characterImage(),
+                            profile.expeditionLevel()
+                    );
+                    return existingCharacter;
+                })
+                .orElseGet(() -> characterRepository.save(new LostArkCharacter(
+                        profile.characterName(),
+                        profile.characterClassName(),
+                        itemLevel,
+                        profile.serverName(),
+                        profile.characterImage(),
+                        profile.expeditionLevel()
+                )));
+
+        return LostArkCharacterResponse.from(character);
+    }
+
+    private Integer parseItemLevel(String itemAvgLevel) {
+        if (itemAvgLevel == null) {
+            return null;
+        }
+
+        String normalizedItemLevel = itemAvgLevel.replace(",", "");
+
+        return (int) Double.parseDouble(normalizedItemLevel);
     }
 }
