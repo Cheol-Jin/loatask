@@ -1,5 +1,7 @@
 # Lost Ark Character Dashboard
 
+![image]({https://github.com/user-attachments/assets/6f360309-e0e3-4d0b-9cdc-0440dbafed54})
+
 로스트아크 Open API를 활용하여 캐릭터 정보를 조회하고, 조회한 캐릭터 데이터를 저장·관리하는 Spring Boot 기반 백엔드 프로젝트입니다.
 
 Vue.js와 연동하여 캐릭터 카드, 원정대 정보, 아이템 레벨, 길드 정보 등을 보여주는 대시보드 형태로 확장, 그리고 또 다른 부가 기능들을 추가 개발하는 것을 목표로 합니다.
