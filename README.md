@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/images/lostask.png" width="420" />
+  <img src="docs/images/loatask.png" width="420" />
 </p>
 
 # LoaTask
