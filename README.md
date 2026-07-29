@@ -1,6 +1,8 @@
-# Lost Ark Character Dashboard
+<p align="center">
+  <img src="./docs/images/lostask.png" width="420" />
+</p>
 
-![image]({https://github.com/user-attachments/assets/6f360309-e0e3-4d0b-9cdc-0440dbafed54})
+# LoaTask
 
 로스트아크 Open API를 활용하여 캐릭터 정보를 조회하고, 조회한 캐릭터 데이터를 저장·관리하는 Spring Boot 기반 백엔드 프로젝트입니다.
 
