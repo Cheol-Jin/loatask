@@ -10,6 +10,7 @@ import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterImportRequest;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,7 @@ public class LostArkController {
     }
 
     @PostMapping("/characters/import")
-    public LostArkCharacterResponse importCharacter(@RequestBody LostArkCharacterImportRequest request) {
+    public LostArkCharacterResponse importCharacter(@Valid @RequestBody LostArkCharacterImportRequest request) {
         return characterService.importCharacter(request);
     }
 }

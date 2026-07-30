@@ -9,3 +9,11 @@ Content-Type: application/json
 
 ### 캐릭터 목록 조회
 GET http://localhost:8080/api/lostark/characters
+
+### 캐릭터명 없이 import 요청 - 검증 실패 테스트
+POST http://localhost:8080/api/lostark/characters/import
+Content-Type: application/json
+
+{
+  "characterName": ""
+}
