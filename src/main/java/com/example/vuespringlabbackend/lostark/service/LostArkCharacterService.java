@@ -38,7 +38,7 @@ public class LostArkCharacterService {
 
     @Transactional(readOnly = true)
     public List<LostArkCharacterResponse> getCharacters() {
-        return characterRepository.findAll()
+        return characterRepository.findAllByOrderByItemLevelDesc()
                 .stream()
                 .map(LostArkCharacterResponse::from)
                 .toList();

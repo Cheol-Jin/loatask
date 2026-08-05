@@ -33,3 +33,17 @@ GET http://localhost:8080/api/lostark/characters/999999
   "code": "BAD_REQUEST",
   "message": "캐릭터를 찾을 수 없습니다. id=999999"
 }
+
+### 캐릭터 목록 조회
+GET http://localhost:8080/api/lostark/characters
+
+[
+  {
+    "characterName": "대마법사진이",
+    "itemLevel": 1743
+  },
+  {
+    "characterName": "다른캐릭터",
+    "itemLevel": 1640
+  }
+]
