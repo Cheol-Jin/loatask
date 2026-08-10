@@ -18,7 +18,9 @@ onMounted(() => {
         <v-row class="mb-8">
           <v-col cols="12">
             <p class="text-caption text-blue-lighten-2 mb-2">Lost Ark Character Dashboard</p>
+
             <h1 class="text-h3 font-weight-bold mb-3">LoaTask</h1>
+
             <p class="text-body-1 text-grey-lighten-1">
               저장된 로스트아크 캐릭터 정보를 한눈에 확인합니다.
             </p>
@@ -35,12 +37,28 @@ onMounted(() => {
           </v-col>
         </v-row>
 
+        <v-row v-else-if="characters.length === 0">
+          <v-col cols="12">
+            <v-card rounded="xl" class="empty-card">
+              <v-card-text class="text-center py-10">
+                <v-icon size="48" color="blue-lighten-2" class="mb-4"> mdi-account-search </v-icon>
+
+                <h2 class="text-h6 mb-2">저장된 캐릭터가 없습니다.</h2>
+
+                <p class="text-body-2 text-grey-lighten-1">
+                  백엔드 API를 통해 캐릭터를 먼저 저장하면 이곳에 표시됩니다.
+                </p>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
         <v-row v-else>
           <v-col v-for="character in characters" :key="character.id" cols="12" sm="6" md="4">
-            <v-card class="character-card" rounded="xl" elevation="8">
+            <v-card rounded="xl" elevation="8" class="character-card">
               <v-img :src="character.characterImage" height="260" cover />
 
-              <v-card-title class="pb-1">
+              <v-card-title>
                 {{ character.characterName }}
               </v-card-title>
 
@@ -53,6 +71,7 @@ onMounted(() => {
                   <v-col cols="6">
                     <v-sheet class="info-box" rounded="lg">
                       <p class="text-caption text-grey">Item Level</p>
+
                       <strong>{{ character.itemLevel }}</strong>
                     </v-sheet>
                   </v-col>
@@ -60,6 +79,7 @@ onMounted(() => {
                   <v-col cols="6">
                     <v-sheet class="info-box" rounded="lg">
                       <p class="text-caption text-grey">Expedition</p>
+
                       <strong>{{ character.expeditionLevel }}</strong>
                     </v-sheet>
                   </v-col>
@@ -80,6 +100,11 @@ onMounted(() => {
 }
 
 .character-card {
+  background: #171c26;
+  border: 1px solid #2a3140;
+}
+
+.empty-card {
   background: #171c26;
   border: 1px solid #2a3140;
 }
