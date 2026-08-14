@@ -10,15 +10,15 @@ const searchKeyword = ref('')
 
 const popularCharacters = [
   { rank: 1, name: '대마법사진이', jobName: '소서리스', searchCount: 128 },
-  { rank: 2, name: '로아검색', jobName: '블레이드', searchCount: 96 },
-  { rank: 3, name: '카멘', jobName: '버서커', searchCount: 87 },
-  { rank: 4, name: '모코코', jobName: '도화가', searchCount: 72 },
-  { rank: 5, name: '군단장', jobName: '워로드', searchCount: 65 },
+  { rank: 2, name: '로아검색예시', jobName: '블레이드', searchCount: 96 },
+  { rank: 3, name: '카멘트라이', jobName: '버서커', searchCount: 87 },
+  { rank: 4, name: '모코코검색', jobName: '도화가', searchCount: 72 },
+  { rank: 5, name: '군단장연습', jobName: '워로드', searchCount: 65 },
   { rank: 6, name: '아크라시아', jobName: '건슬링어', searchCount: 51 },
-  { rank: 7, name: '레이드', jobName: '바드', searchCount: 44 },
-  { rank: 8, name: '숙제', jobName: '스카우터', searchCount: 39 },
-  { rank: 9, name: '니나브', jobName: '슬레이어', searchCount: 32 },
-  { rank: 10, name: '샨디', jobName: '기상술사', searchCount: 28 },
+  { rank: 7, name: '레이드초보', jobName: '바드', searchCount: 44 },
+  { rank: 8, name: '숙제끝내자', jobName: '스카우터', searchCount: 39 },
+  { rank: 9, name: '니나브좋아', jobName: '슬레이어', searchCount: 32 },
+  { rank: 10, name: '강화붙어라', jobName: '기상술사', searchCount: 28 },
 ]
 
 const handleSearch = async () => {
@@ -77,49 +77,49 @@ const searchPopularCharacter = async (characterName: string) => {
           {{ errorMessage }}
         </v-alert>
 
-        <v-row>
+        <v-row align="start">
           <v-col cols="12" md="8">
             <v-card v-if="isSearching" rounded="xl" class="content-card">
               <v-skeleton-loader type="image, article" />
             </v-card>
 
             <v-card v-else-if="searchedProfile" rounded="xl" class="profile-card">
+              <div class="profile-header">
+                <div>
+                  <p class="server-name">
+                    {{ searchedProfile.serverName }}
+                  </p>
+
+                  <h2 class="character-name">
+                    {{ searchedProfile.characterName }}
+                  </h2>
+                </div>
+
+                <v-chip color="blue-lighten-1" variant="tonal" size="large">
+                  {{ searchedProfile.characterClassName }}
+                </v-chip>
+              </div>
+
               <v-row no-gutters>
                 <v-col cols="12" md="5">
-                  <v-img
-                    :src="searchedProfile.characterImage"
-                    height="420"
-                    cover
-                    class="character-image"
-                  />
+                  <div class="image-wrap">
+                    <v-img
+                      :src="searchedProfile.characterImage"
+                      height="440"
+                      cover
+                      class="character-image"
+                    />
+                  </div>
                 </v-col>
 
                 <v-col cols="12" md="7">
-                  <v-card-text class="pa-8">
-                    <div class="d-flex align-center justify-space-between mb-4">
-                      <div>
-                        <p class="text-caption text-blue-lighten-2 mb-1">
-                          {{ searchedProfile.serverName }}
-                        </p>
-
-                        <h2 class="text-h4 font-weight-bold">
-                          {{ searchedProfile.characterName }}
-                        </h2>
-                      </div>
-
-                      <v-chip color="blue-lighten-1" variant="tonal">
-                        {{ searchedProfile.characterClassName }}
-                      </v-chip>
-                    </div>
-
-                    <v-divider class="my-6" />
-
+                  <v-card-text class="profile-content">
                     <v-row>
-                      <v-col cols="6">
-                        <v-sheet class="info-box" rounded="lg">
-                          <p class="text-caption text-grey-lighten-1">아이템 레벨</p>
+                      <v-col cols="12">
+                        <v-sheet class="level-box" rounded="xl">
+                          <p class="info-label">아이템 레벨</p>
 
-                          <strong class="text-h6">
+                          <strong class="item-level">
                             {{ searchedProfile.itemAvgLevel }}
                           </strong>
                         </v-sheet>
@@ -127,9 +127,9 @@ const searchPopularCharacter = async (characterName: string) => {
 
                       <v-col cols="6">
                         <v-sheet class="info-box" rounded="lg">
-                          <p class="text-caption text-grey-lighten-1">원정대 레벨</p>
+                          <p class="info-label">원정대 레벨</p>
 
-                          <strong class="text-h6">
+                          <strong>
                             {{ searchedProfile.expeditionLevel }}
                           </strong>
                         </v-sheet>
@@ -137,7 +137,17 @@ const searchPopularCharacter = async (characterName: string) => {
 
                       <v-col cols="6">
                         <v-sheet class="info-box" rounded="lg">
-                          <p class="text-caption text-grey-lighten-1">길드</p>
+                          <p class="info-label">캐릭터 레벨</p>
+
+                          <strong>
+                            {{ searchedProfile.characterLevel }}
+                          </strong>
+                        </v-sheet>
+                      </v-col>
+
+                      <v-col cols="6">
+                        <v-sheet class="info-box" rounded="lg">
+                          <p class="info-label">길드</p>
 
                           <strong>
                             {{ searchedProfile.guildName || '-' }}
@@ -147,7 +157,7 @@ const searchPopularCharacter = async (characterName: string) => {
 
                       <v-col cols="6">
                         <v-sheet class="info-box" rounded="lg">
-                          <p class="text-caption text-grey-lighten-1">영지</p>
+                          <p class="info-label">영지</p>
 
                           <strong>
                             {{ searchedProfile.townName || '-' }}
@@ -163,7 +173,7 @@ const searchPopularCharacter = async (characterName: string) => {
 
           <v-col cols="12" md="4">
             <v-card rounded="xl" class="ranking-card">
-              <v-card-title class="d-flex align-center justify-space-between">
+              <v-card-title class="ranking-title">
                 <span>실시간 검색 순위</span>
                 <v-icon color="amber">mdi-trophy</v-icon>
               </v-card-title>
@@ -230,19 +240,82 @@ const searchPopularCharacter = async (characterName: string) => {
 .content-card,
 .profile-card,
 .ranking-card {
+  overflow: hidden;
   background: rgba(23, 28, 38, 0.94);
   border: 1px solid #263246;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 32px;
+  border-bottom: 1px solid #263246;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.9));
+}
+
+.server-name {
+  margin-bottom: 6px;
+  color: #64b5f6;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.character-name {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.image-wrap {
+  height: 100%;
+  background: linear-gradient(180deg, rgba(13, 17, 23, 0), rgba(13, 17, 23, 0.8)), #10131a;
 }
 
 .character-image {
   background: #10131a;
 }
 
+.profile-content {
+  padding: 28px;
+}
+
+.level-box {
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.18), rgba(13, 17, 23, 0.95));
+  border: 1px solid rgba(100, 181, 246, 0.35);
+}
+
+.item-level {
+  display: block;
+  margin-top: 4px;
+  color: #90caf9;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
 .info-box {
+  min-height: 92px;
   padding: 16px;
   background: rgba(13, 17, 23, 0.92);
   border: 1px solid #263246;
+}
+
+.info-label {
+  margin-bottom: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ranking-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 8px;
+  font-weight: 800;
 }
 
 .ranking-item {
@@ -254,5 +327,20 @@ const searchPopularCharacter = async (characterName: string) => {
 .ranking-item:hover {
   background: rgba(66, 165, 245, 0.12);
   transform: translateX(4px);
+}
+
+@media (max-width: 960px) {
+  .hero-card {
+    padding: 28px;
+  }
+
+  .profile-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .character-name {
+    font-size: 28px;
+  }
 }
 </style>
