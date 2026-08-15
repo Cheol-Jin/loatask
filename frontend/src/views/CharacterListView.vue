@@ -50,6 +50,7 @@ const searchPopularCharacter = async (characterName: string) => {
                     rounded="xl"
                     density="comfortable"
                     hide-details
+                    clearable
                     prepend-inner-icon="mdi-magnify"
                     @keyup.enter="handleSearch"
                   />
@@ -63,6 +64,7 @@ const searchPopularCharacter = async (characterName: string) => {
                     color="blue-lighten-1"
                     class="search-button"
                     :loading="isSearching"
+                    prepend-icon="mdi-magnify"
                     @click="handleSearch"
                   >
                     검색
