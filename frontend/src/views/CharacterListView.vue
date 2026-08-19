@@ -22,7 +22,13 @@ const popularCharacters = [
 ]
 
 const handleSearch = async () => {
-  await characterStore.searchCharacter(searchKeyword.value)
+  const keyword = searchKeyword.value.trim()
+
+  if (!keyword) {
+    return
+  }
+
+  await characterStore.searchCharacter(keyword)
 }
 
 const searchPopularCharacter = async (characterName: string) => {
@@ -32,190 +38,189 @@ const searchPopularCharacter = async (characterName: string) => {
 </script>
 
 <template>
-  <v-app>
-    <v-main class="page">
-      <v-container class="py-10">
-        <v-row class="mb-8">
-          <v-col cols="12">
-            <div class="hero-card">
-              <h1 class="text-h3 font-weight-bold mb-8">LoaTask</h1>
+  <v-main class="page">
+    <v-container class="py-10">
+      <v-row class="mb-8">
+        <v-col cols="12">
+          <div class="hero-card">
+            <h1 class="text-h3 font-weight-bold mb-8">LoaTask</h1>
 
-              <v-row>
-                <v-col cols="12" md="9">
-                  <v-text-field
-                    v-model="searchKeyword"
-                    label="캐릭터명"
-                    placeholder="캐릭터명을 입력하세요"
-                    variant="solo-filled"
-                    rounded="xl"
-                    density="comfortable"
-                    hide-details
-                    clearable
-                    prepend-inner-icon="mdi-magnify"
-                    @keyup.enter="handleSearch"
-                  />
-                </v-col>
+            <v-row>
+              <v-col cols="12" md="9">
+                <v-text-field
+                  v-model="searchKeyword"
+                  label="캐릭터명"
+                  placeholder="캐릭터명을 입력하세요"
+                  variant="solo-filled"
+                  rounded="xl"
+                  density="comfortable"
+                  hide-details
+                  clearable
+                  prepend-inner-icon="mdi-magnify"
+                  @keyup.enter="handleSearch"
+                />
+              </v-col>
 
-                <v-col cols="12" md="3">
-                  <v-btn
-                    block
-                    size="large"
-                    rounded="xl"
-                    color="blue-lighten-1"
-                    class="search-button"
-                    :loading="isSearching"
-                    prepend-icon="mdi-magnify"
-                    @click="handleSearch"
-                  >
-                    검색
-                  </v-btn>
-                </v-col>
-              </v-row>
-            </div>
-          </v-col>
-        </v-row>
+              <v-col cols="12" md="3">
+                <v-btn
+                  block
+                  size="large"
+                  rounded="xl"
+                  color="blue-lighten-1"
+                  class="search-button"
+                  :loading="isSearching"
+                  :disabled="!searchKeyword.trim()"
+                  prepend-icon="mdi-magnify"
+                  @click="handleSearch"
+                >
+                  검색
+                </v-btn>
+              </v-col>
+            </v-row>
+          </div>
+        </v-col>
+      </v-row>
 
-        <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-6" rounded="xl">
-          {{ errorMessage }}
-        </v-alert>
+      <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-6" rounded="xl">
+        {{ errorMessage }}
+      </v-alert>
 
-        <v-row align="start">
-          <v-col cols="12" md="8">
-            <v-card v-if="isSearching" rounded="xl" class="content-card">
-              <v-skeleton-loader type="image, article" />
-            </v-card>
+      <v-row align="start">
+        <v-col cols="12" md="8">
+          <v-card v-if="isSearching" rounded="xl" class="content-card">
+            <v-skeleton-loader type="image, article" />
+          </v-card>
 
-            <v-card v-else-if="searchedProfile" rounded="xl" class="profile-card">
-              <div class="profile-header">
-                <div>
-                  <p class="server-name">
-                    {{ searchedProfile.serverName }}
-                  </p>
+          <v-card v-else-if="searchedProfile" rounded="xl" class="profile-card">
+            <div class="profile-header">
+              <div>
+                <p class="server-name">
+                  {{ searchedProfile.serverName }}
+                </p>
 
-                  <h2 class="character-name">
-                    {{ searchedProfile.characterName }}
-                  </h2>
-                </div>
-
-                <v-chip color="blue-lighten-1" variant="tonal" size="large">
-                  {{ searchedProfile.characterClassName }}
-                </v-chip>
+                <h2 class="character-name">
+                  {{ searchedProfile.characterName }}
+                </h2>
               </div>
 
-              <v-row no-gutters>
-                <v-col cols="12" md="5">
-                  <div class="image-wrap">
-                    <v-img
-                      :src="searchedProfile.characterImage"
-                      height="440"
-                      cover
-                      class="character-image"
-                    />
-                  </div>
-                </v-col>
+              <v-chip color="blue-lighten-1" variant="tonal" size="large">
+                {{ searchedProfile.characterClassName }}
+              </v-chip>
+            </div>
 
-                <v-col cols="12" md="7">
-                  <v-card-text class="profile-content">
-                    <v-row>
-                      <v-col cols="12">
-                        <v-sheet class="level-box" rounded="xl">
-                          <p class="info-label">아이템 레벨</p>
+            <v-row no-gutters>
+              <v-col cols="12" md="5">
+                <div class="image-wrap">
+                  <v-img
+                    :src="searchedProfile.characterImage"
+                    height="440"
+                    cover
+                    class="character-image"
+                  />
+                </div>
+              </v-col>
 
-                          <strong class="item-level">
-                            {{ searchedProfile.itemAvgLevel }}
-                          </strong>
-                        </v-sheet>
-                      </v-col>
+              <v-col cols="12" md="7">
+                <v-card-text class="profile-content">
+                  <v-row>
+                    <v-col cols="12">
+                      <v-sheet class="level-box" rounded="xl">
+                        <p class="info-label">아이템 레벨</p>
 
-                      <v-col cols="6">
-                        <v-sheet class="info-box" rounded="lg">
-                          <p class="info-label">원정대 레벨</p>
+                        <strong class="item-level">
+                          {{ searchedProfile.itemAvgLevel }}
+                        </strong>
+                      </v-sheet>
+                    </v-col>
 
-                          <strong>
-                            {{ searchedProfile.expeditionLevel }}
-                          </strong>
-                        </v-sheet>
-                      </v-col>
+                    <v-col cols="6">
+                      <v-sheet class="info-box" rounded="lg">
+                        <p class="info-label">원정대 레벨</p>
 
-                      <v-col cols="6">
-                        <v-sheet class="info-box" rounded="lg">
-                          <p class="info-label">캐릭터 레벨</p>
+                        <strong>
+                          {{ searchedProfile.expeditionLevel }}
+                        </strong>
+                      </v-sheet>
+                    </v-col>
 
-                          <strong>
-                            {{ searchedProfile.characterLevel }}
-                          </strong>
-                        </v-sheet>
-                      </v-col>
+                    <v-col cols="6">
+                      <v-sheet class="info-box" rounded="lg">
+                        <p class="info-label">캐릭터 레벨</p>
 
-                      <v-col cols="6">
-                        <v-sheet class="info-box" rounded="lg">
-                          <p class="info-label">길드</p>
+                        <strong>
+                          {{ searchedProfile.characterLevel }}
+                        </strong>
+                      </v-sheet>
+                    </v-col>
 
-                          <strong>
-                            {{ searchedProfile.guildName || '-' }}
-                          </strong>
-                        </v-sheet>
-                      </v-col>
+                    <v-col cols="6">
+                      <v-sheet class="info-box" rounded="lg">
+                        <p class="info-label">길드</p>
 
-                      <v-col cols="6">
-                        <v-sheet class="info-box" rounded="lg">
-                          <p class="info-label">영지</p>
+                        <strong>
+                          {{ searchedProfile.guildName || '-' }}
+                        </strong>
+                      </v-sheet>
+                    </v-col>
 
-                          <strong>
-                            {{ searchedProfile.townName || '-' }}
-                          </strong>
-                        </v-sheet>
-                      </v-col>
-                    </v-row>
-                  </v-card-text>
-                </v-col>
-              </v-row>
-            </v-card>
-          </v-col>
+                    <v-col cols="6">
+                      <v-sheet class="info-box" rounded="lg">
+                        <p class="info-label">영지</p>
 
-          <v-col cols="12" md="4">
-            <v-card rounded="xl" class="ranking-card">
-              <v-card-title class="ranking-title">
-                <span>실시간 검색 순위</span>
-                <v-icon color="amber">mdi-trophy</v-icon>
-              </v-card-title>
+                        <strong>
+                          {{ searchedProfile.townName || '-' }}
+                        </strong>
+                      </v-sheet>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-col>
+            </v-row>
+          </v-card>
+        </v-col>
 
-              <v-card-text>
-                <v-list bg-color="transparent" class="pa-0">
-                  <v-list-item
-                    v-for="character in popularCharacters"
-                    :key="character.rank"
-                    class="ranking-item"
-                    rounded="lg"
-                    @click="searchPopularCharacter(character.name)"
-                  >
-                    <template #prepend>
-                      <v-avatar
-                        size="32"
-                        :color="character.rank <= 3 ? 'amber' : 'blue-grey-darken-3'"
-                      >
-                        <span class="text-caption font-weight-bold">
-                          {{ character.rank }}
-                        </span>
-                      </v-avatar>
-                    </template>
+        <v-col cols="12" md="4">
+          <v-card rounded="xl" class="ranking-card">
+            <v-card-title class="ranking-title">
+              <span>실시간 검색 순위</span>
+              <v-icon color="amber">mdi-trophy</v-icon>
+            </v-card-title>
 
-                    <v-list-item-title class="font-weight-bold">
-                      {{ character.name }}
-                    </v-list-item-title>
+            <v-card-text>
+              <v-list bg-color="transparent" class="pa-0">
+                <v-list-item
+                  v-for="character in popularCharacters"
+                  :key="character.rank"
+                  class="ranking-item"
+                  rounded="lg"
+                  @click="searchPopularCharacter(character.name)"
+                >
+                  <template #prepend>
+                    <v-avatar
+                      size="32"
+                      :color="character.rank <= 3 ? 'amber' : 'blue-grey-darken-3'"
+                    >
+                      <span class="text-caption font-weight-bold">
+                        {{ character.rank }}
+                      </span>
+                    </v-avatar>
+                  </template>
 
-                    <v-list-item-subtitle>
-                      {{ character.jobName }} · {{ character.searchCount }}회
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-main>
-  </v-app>
+                  <v-list-item-title class="font-weight-bold">
+                    {{ character.name }}
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle>
+                    {{ character.jobName }} · {{ character.searchCount }}회
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+  </v-main>
 </template>
 
 <style scoped>
