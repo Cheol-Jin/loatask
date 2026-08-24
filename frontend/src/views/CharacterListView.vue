@@ -135,6 +135,16 @@ const searchPopularCharacter = async (characterName: string) => {
 
                     <v-col cols="6">
                       <v-sheet class="info-box" rounded="lg">
+                        <p class="info-label">최대 아이템 레벨</p>
+
+                        <strong>
+                          {{ searchedProfile.itemMaxLevel || '-' }}
+                        </strong>
+                      </v-sheet>
+                    </v-col>
+
+                    <v-col cols="6">
+                      <v-sheet class="info-box" rounded="lg">
                         <p class="info-label">원정대 레벨</p>
 
                         <strong>
