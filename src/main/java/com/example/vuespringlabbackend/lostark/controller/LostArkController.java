@@ -7,6 +7,7 @@ import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterUpdateRequest
 import com.example.vuespringlabbackend.lostark.service.LostArkCharacterService;
 import com.example.vuespringlabbackend.lostark.api.LostArkOpenApiClient;
 import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
+import com.example.vuespringlabbackend.lostark.search.service.CharacterSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterImportRequest;
@@ -25,6 +26,8 @@ public class LostArkController {
     private final LostArkCharacterService characterService;
 
     private final LostArkOpenApiClient lostArkOpenApiClient;
+    
+    private final CharacterSearchService characterSearchService;
 
     @GetMapping("/status")
     public Map<String, String> status() {
@@ -64,8 +67,17 @@ public class LostArkController {
     }
 
     @GetMapping("/official/characters/{characterName}/profile")
-    public LostArkProfileResponse getOfficialCharacterProfile(@PathVariable String characterName) {
-        return lostArkOpenApiClient.getCharacterProfile(characterName);
+    public LostArkProfileResponse getOfficialCharacterProfile(
+    		@PathVariable("characterName") String characterName
+    ) {
+        LostArkProfileResponse profile =
+            lostArkOpenApiClient.getCharacterProfile(characterName);
+
+        if (profile != null && profile.characterName() != null) {
+            characterSearchService.recordSearch(profile.characterName());
+        }
+
+        return profile;
     }
 
     @PostMapping("/characters/import")
