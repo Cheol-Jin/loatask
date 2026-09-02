@@ -20,3 +20,21 @@ export interface LostArkProfile {
   itemAvgLevel: string
   itemMaxLevel: string | null
 }
+
+export interface LostArkProfile {
+  characterImage: string
+  expeditionLevel: number
+  townName: string
+  guildName: string
+  serverName: string
+  characterName: string
+  characterLevel: number
+  characterClassName: string
+  itemAvgLevel: string
+  itemMaxLevel: string | null
+}
+
+export interface CharacterSearchRanking {
+  characterName: string
+  searchCount: number
+}

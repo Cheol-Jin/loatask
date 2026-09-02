@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { LostArkCharacter, LostArkProfile } from '@/types/lostark'
+import type { LostArkCharacter, LostArkProfile, CharacterSearchRanking } from '@/types/lostark'
 
 const lostarkApi = axios.create({
   baseURL: 'http://localhost:8080/api/lostark',
@@ -14,5 +14,10 @@ export const getCharacterProfile = async (characterName: string): Promise<LostAr
   const response = await lostarkApi.get<LostArkProfile>(
     `/official/characters/${characterName}/profile`,
   )
+  return response.data
+}
+
+export const getSearchRankings = async (): Promise<CharacterSearchRanking[]> => {
+  const response = await lostarkApi.get<CharacterSearchRanking[]>('/search/rankings')
   return response.data
 }

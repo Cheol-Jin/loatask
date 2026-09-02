@@ -1,25 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCharacterStore } from '@/stores/characterStore'
+import { getSearchRankings } from '@/api/lostarkApi'
+import type { CharacterSearchRanking } from '@/types/lostark'
 
 const characterStore = useCharacterStore()
 const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
 
 const searchKeyword = ref('')
 
-const popularCharacters = [
-  { rank: 1, name: '대마법사진이', jobName: '소서리스', searchCount: 128 },
-  { rank: 2, name: '로아검색예시', jobName: '블레이드', searchCount: 96 },
-  { rank: 3, name: '카멘트라이', jobName: '버서커', searchCount: 87 },
-  { rank: 4, name: '모코코검색', jobName: '도화가', searchCount: 72 },
-  { rank: 5, name: '군단장연습', jobName: '워로드', searchCount: 65 },
-  { rank: 6, name: '아크라시아', jobName: '건슬링어', searchCount: 51 },
-  { rank: 7, name: '레이드초보', jobName: '바드', searchCount: 44 },
-  { rank: 8, name: '숙제끝내자', jobName: '스카우터', searchCount: 39 },
-  { rank: 9, name: '니나브좋아', jobName: '슬레이어', searchCount: 32 },
-  { rank: 10, name: '강화붙어라', jobName: '기상술사', searchCount: 28 },
-]
+const popularCharacters = ref<CharacterSearchRanking[]>([])
+
+const fetchSearchRankings = async () => {
+  try {
+    popularCharacters.value = await getSearchRankings()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+onMounted(() => {
+  fetchSearchRankings()
+})
 
 const handleSearch = async () => {
   const keyword = searchKeyword.value.trim()
@@ -29,11 +32,13 @@ const handleSearch = async () => {
   }
 
   await characterStore.searchCharacter(keyword)
+  await fetchSearchRankings()
 }
 
 const searchPopularCharacter = async (characterName: string) => {
   searchKeyword.value = characterName
   await characterStore.searchCharacter(characterName)
+  await fetchSearchRankings()
 }
 </script>
 
@@ -199,30 +204,25 @@ const searchPopularCharacter = async (characterName: string) => {
             <v-card-text>
               <v-list bg-color="transparent" class="pa-0">
                 <v-list-item
-                  v-for="character in popularCharacters"
-                  :key="character.rank"
+                  v-for="(character, index) in popularCharacters"
+                  :key="character.characterName"
                   class="ranking-item"
                   rounded="lg"
-                  @click="searchPopularCharacter(character.name)"
+                  @click="searchPopularCharacter(character.characterName)"
                 >
                   <template #prepend>
-                    <v-avatar
-                      size="32"
-                      :color="character.rank <= 3 ? 'amber' : 'blue-grey-darken-3'"
-                    >
+                    <v-avatar size="32" :color="index < 3 ? 'amber' : 'blue-grey-darken-3'">
                       <span class="text-caption font-weight-bold">
-                        {{ character.rank }}
+                        {{ index + 1 }}
                       </span>
                     </v-avatar>
                   </template>
 
                   <v-list-item-title class="font-weight-bold">
-                    {{ character.name }}
+                    {{ character.characterName }}
                   </v-list-item-title>
 
-                  <v-list-item-subtitle>
-                    {{ character.jobName }} · {{ character.searchCount }}회
-                  </v-list-item-subtitle>
+                  <v-list-item-subtitle> {{ character.searchCount }}회 </v-list-item-subtitle>
                 </v-list-item>
               </v-list>
             </v-card-text>
