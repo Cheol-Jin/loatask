@@ -3,7 +3,9 @@ import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCharacterStore } from '@/stores/characterStore'
 import { getSearchRankings } from '@/api/lostarkApi'
+import { useRouter } from 'vue-router'
 import type { CharacterSearchRanking } from '@/types/lostark'
+const router = useRouter()
 
 const characterStore = useCharacterStore()
 const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
@@ -24,12 +26,29 @@ onMounted(() => {
   fetchSearchRankings()
 })
 
+const goDetail = () => {
+  if (!searchedProfile.value) return
+
+  router.push({
+    name: 'characterDetail',
+    params: {
+      name: searchedProfile.value.characterName,
+    },
+  })
+}
+
 const handleSearch = async () => {
   const keyword = searchKeyword.value.trim()
 
   if (!keyword) {
     return
   }
+
+  await router.replace({
+    query: {
+      character: keyword,
+    },
+  })
 
   await characterStore.searchCharacter(keyword)
   await fetchSearchRankings()
@@ -188,6 +207,14 @@ const searchPopularCharacter = async (characterName: string) => {
                       </v-sheet>
                     </v-col>
                   </v-row>
+                  <v-btn
+                    color="blue-lighten-1"
+                    rounded="xl"
+                    prepend-icon="mdi-account"
+                    @click="goDetail"
+                  >
+                    상세 보기
+                  </v-btn>
                 </v-card-text>
               </v-col>
             </v-row>
