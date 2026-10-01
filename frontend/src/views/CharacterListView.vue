@@ -3,9 +3,10 @@ import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCharacterStore } from '@/stores/characterStore'
 import { getSearchRankings } from '@/api/lostarkApi'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { CharacterSearchRanking } from '@/types/lostark'
 const router = useRouter()
+const route = useRoute()
 
 const characterStore = useCharacterStore()
 const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
@@ -22,8 +23,13 @@ const fetchSearchRankings = async () => {
   }
 }
 
-onMounted(() => {
-  fetchSearchRankings()
+onMounted(async () => {
+  const character = route.query.character
+  if (typeof character === 'string' && character.trim()) {
+    searchKeyword.value = character.trim()
+    await characterStore.searchCharacter(searchKeyword.value)
+  }
+  await fetchSearchRankings()
 })
 
 const goDetail = () => {

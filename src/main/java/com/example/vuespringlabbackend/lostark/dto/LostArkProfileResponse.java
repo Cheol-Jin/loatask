@@ -1,61 +1,61 @@
 package com.example.vuespringlabbackend.lostark.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 public record LostArkProfileResponse(
 
-        @JsonProperty("CharacterImage")
+        @JsonAlias("CharacterImage")
         String characterImage,
 
-        @JsonProperty("ExpeditionLevel")
+        @JsonAlias("ExpeditionLevel")
         Integer expeditionLevel,
 
-        @JsonProperty("PvpGradeName")
+        @JsonAlias("PvpGradeName")
         String pvpGradeName,
 
-        @JsonProperty("TownLevel")
+        @JsonAlias("TownLevel")
         Integer townLevel,
 
-        @JsonProperty("TownName")
+        @JsonAlias("TownName")
         String townName,
 
-        @JsonProperty("Title")
+        @JsonAlias("Title")
         String title,
 
-        @JsonProperty("GuildMemberGrade")
+        @JsonAlias("GuildMemberGrade")
         String guildMemberGrade,
 
-        @JsonProperty("GuildName")
+        @JsonAlias("GuildName")
         String guildName,
 
-        @JsonProperty("UsingSkillPoint")
+        @JsonAlias("UsingSkillPoint")
         Integer usingSkillPoint,
 
-        @JsonProperty("TotalSkillPoint")
+        @JsonAlias("TotalSkillPoint")
         Integer totalSkillPoint,
 
-        @JsonProperty("Stats")
+        @JsonAlias("Stats")
         Object stats,
 
-        @JsonProperty("Tendencies")
+        @JsonAlias("Tendencies")
         Object tendencies,
 
-        @JsonProperty("ServerName")
+        @JsonAlias("ServerName")
         String serverName,
 
-        @JsonProperty("CharacterName")
+        @JsonAlias("CharacterName")
         String characterName,
 
-        @JsonProperty("CharacterLevel")
+        @JsonAlias("CharacterLevel")
         Integer characterLevel,
 
-        @JsonProperty("CharacterClassName")
+        @JsonAlias("CharacterClassName")
         String characterClassName,
 
-        @JsonProperty("ItemAvgLevel")
+        @JsonAlias("ItemAvgLevel")
         String itemAvgLevel,
 
-        @JsonProperty("ItemMaxLevel")
+        @JsonAlias("ItemMaxLevel")
         String itemMaxLevel
 ) {
 }
