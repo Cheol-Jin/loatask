@@ -96,8 +96,6 @@
 - 개발용 MySQL과 필요한 테이블
 - Lost Ark Open API 키
 
-백엔드 설정은 `src/main/resources/application.properties`에서 확인합니다. DB 연결 대상은 개발용 로컬 DB로 지정하고, 비밀번호와 API 키는 Git에 올리지 마세요. `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `LOSTARK_API_KEY` 환경변수로 설정을 덮어쓸 수 있습니다.
-
 ### 백엔드
 
 저장소 루트에서 실행합니다. 아래 명령은 DB 스키마를 자동 변경하지 않으므로, 필요한 테이블은 미리 준비되어 있어야 합니다.
