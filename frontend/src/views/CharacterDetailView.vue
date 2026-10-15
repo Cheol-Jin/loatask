@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getCharacterProfile } from '@/api/lostarkApi'
+import { getCharacterErrorMessage, getCharacterProfile } from '@/api/lostarkApi'
 import type { LostArkProfile } from '@/types/lostark'
 
 const route = useRoute()
@@ -9,29 +9,47 @@ const route = useRoute()
 const profile = ref<LostArkProfile | null>(null)
 
 const loading = ref(false)
+const errorMessage = ref('')
+let requestId = 0
 
 const loadCharacter = async () => {
-  const name = route.params.name as string
+  const currentRequestId = ++requestId
+  const name = typeof route.params.name === 'string' ? route.params.name : ''
 
   loading.value = true
+  profile.value = null
+  errorMessage.value = ''
 
   try {
-    profile.value = await getCharacterProfile(name)
+    const result = await getCharacterProfile(name)
+    if (currentRequestId === requestId) profile.value = result
+  } catch (error) {
+    if (currentRequestId === requestId) errorMessage.value = getCharacterErrorMessage(error)
   } finally {
-    loading.value = false
+    if (currentRequestId === requestId) loading.value = false
   }
 }
 
-onMounted(() => {
-  loadCharacter()
-})
+watch(() => route.params.name, loadCharacter, { immediate: true })
 </script>
 
 <template>
   <v-main class="page">
     <v-container class="py-10">
-      <v-card rounded="xl" class="detail-card">
-        <v-card-text v-if="profile" class="pa-10">
+      <v-card v-if="loading" rounded="xl" class="detail-card" aria-label="캐릭터 정보 조회 중">
+        <v-skeleton-loader type="image, article" />
+      </v-card>
+
+      <v-alert v-else-if="errorMessage" type="error" variant="tonal" rounded="xl">
+        {{ errorMessage }}
+        <div class="mt-4 d-flex ga-3 flex-wrap">
+          <v-btn variant="outlined" @click="loadCharacter">다시 시도</v-btn>
+          <v-btn variant="text" :to="{ name: 'characterSearch' }">검색 화면으로</v-btn>
+        </div>
+      </v-alert>
+
+      <v-card v-else-if="profile" rounded="xl" class="detail-card">
+        <v-card-text class="pa-10">
           <v-row>
             <v-col cols="12" md="4">
               <v-img :src="profile.characterImage" height="400" cover rounded="xl" />

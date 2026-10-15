@@ -11,7 +11,7 @@ const route = useRoute()
 const characterStore = useCharacterStore()
 const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
 
-const searchKeyword = ref('')
+const searchKeyword = ref<string | null>('')
 
 const popularCharacters = ref<CharacterSearchRanking[]>([])
 
@@ -44,7 +44,7 @@ const goDetail = () => {
 }
 
 const handleSearch = async () => {
-  const keyword = searchKeyword.value.trim()
+  const keyword = searchKeyword.value?.trim()
 
   if (!keyword) {
     return
@@ -99,7 +99,7 @@ const searchPopularCharacter = async (characterName: string) => {
                   color="blue-lighten-1"
                   class="search-button"
                   :loading="isSearching"
-                  :disabled="!searchKeyword.trim()"
+                  :disabled="!searchKeyword?.trim()"
                   prepend-icon="mdi-magnify"
                   @click="handleSearch"
                 >

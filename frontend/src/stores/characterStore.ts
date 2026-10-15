@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getCharacterProfile, getCharacters } from '@/api/lostarkApi'
+import { getCharacterErrorMessage, getCharacterProfile, getCharacters } from '@/api/lostarkApi'
 import type { LostArkCharacter, LostArkProfile } from '@/types/lostark'
 
 export const useCharacterStore = defineStore('character', () => {
@@ -10,6 +10,7 @@ export const useCharacterStore = defineStore('character', () => {
   const isLoading = ref(false)
   const isSearching = ref(false)
   const errorMessage = ref('')
+  let searchRequestId = 0
 
   const fetchCharacters = async () => {
     try {
@@ -26,22 +27,24 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   const searchCharacter = async (characterName: string) => {
+    const requestId = ++searchRequestId
+    searchedProfile.value = null
+    errorMessage.value = ''
+
     if (!characterName.trim()) {
-      errorMessage.value = '캐릭터명을 입력해주세요.'
+      errorMessage.value = '캐릭터명을 입력해 주세요.'
+      isSearching.value = false
       return
     }
 
     try {
       isSearching.value = true
-      errorMessage.value = ''
-      searchedProfile.value = null
-
-      searchedProfile.value = await getCharacterProfile(characterName)
+      const profile = await getCharacterProfile(characterName)
+      if (requestId === searchRequestId) searchedProfile.value = profile
     } catch (error) {
-      console.error(error)
-      errorMessage.value = '캐릭터 정보를 불러오지 못했습니다.'
+      if (requestId === searchRequestId) errorMessage.value = getCharacterErrorMessage(error)
     } finally {
-      isSearching.value = false
+      if (requestId === searchRequestId) isSearching.value = false
     }
   }
 
