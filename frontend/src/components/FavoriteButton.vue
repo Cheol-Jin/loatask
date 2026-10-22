@@ -7,9 +7,8 @@ const favorites = useFavoriteStore()
 
 <template>
   <v-btn
-    color="amber"
-    variant="tonal"
-    rounded="xl"
+    color="primary"
+    variant="outlined"
     :prepend-icon="favorites.isFavorite(characterName) ? 'mdi-star' : 'mdi-star-outline'"
     :aria-pressed="favorites.isFavorite(characterName)"
     @click="favorites.toggle(characterName)"

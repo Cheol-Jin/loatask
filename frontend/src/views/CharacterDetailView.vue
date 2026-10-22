@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import CharacterProfile from '@/components/CharacterProfile.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
 import { useFavoriteStore } from '@/stores/favoriteStore'
 import { useRoute } from 'vue-router'
@@ -37,96 +38,49 @@ watch(() => route.params.name, loadCharacter, { immediate: true })
 </script>
 
 <template>
-  <v-main class="page">
-    <v-container class="py-10">
+  <v-main>
+    <v-container class="page-shell detail-shell">
+      <RouterLink :to="{ name: 'characterSearch' }" class="back-link">← 캐릭터 검색</RouterLink>
+      <p class="detail-label">캐릭터 기본 프로필</p>
       <v-alert
         v-if="favorites.storageMessage"
         type="warning"
         variant="tonal"
         class="mb-6"
         role="status"
+        >{{ favorites.storageMessage }}</v-alert
       >
-        {{ favorites.storageMessage }}
-      </v-alert>
-      <v-card v-if="loading" rounded="xl" class="detail-card" aria-label="캐릭터 정보 조회 중">
-        <v-skeleton-loader type="image, article" />
-      </v-card>
-
-      <v-alert v-else-if="errorMessage" type="error" variant="tonal" rounded="xl">
+      <v-skeleton-loader v-if="loading" type="image, article" aria-label="캐릭터 정보 조회 중" />
+      <v-alert v-else-if="errorMessage" type="error" variant="tonal">
         {{ errorMessage }}
-        <div class="mt-4 d-flex ga-3 flex-wrap">
-          <v-btn variant="outlined" @click="loadCharacter">다시 시도</v-btn>
-          <v-btn variant="text" :to="{ name: 'characterSearch' }">검색 화면으로</v-btn>
+        <div class="profile-actions">
+          <v-btn variant="outlined" @click="loadCharacter">다시 시도</v-btn
+          ><v-btn variant="text" :to="{ name: 'characterSearch' }">검색 화면으로</v-btn>
         </div>
       </v-alert>
-
-      <v-card v-else-if="profile" rounded="xl" class="detail-card">
-        <v-card-text class="pa-10">
-          <v-row>
-            <v-col cols="12" md="4">
-              <v-img :src="profile.characterImage" height="400" cover rounded="xl" />
-            </v-col>
-
-            <v-col cols="12" md="8">
-              <h1 class="text-h3 font-weight-bold">
-                {{ profile.characterName }}
-              </h1>
-
-              <v-chip class="mt-3" color="blue">
-                {{ profile.characterClassName }}
-              </v-chip>
-
-              <div class="mt-4">
-                <FavoriteButton :character-name="profile.characterName" />
-              </div>
-
-              <v-divider class="my-6" />
-
-              <v-row>
-                <v-col cols="6">
-                  서버
-                  <strong>
-                    {{ profile.serverName }}
-                  </strong>
-                </v-col>
-
-                <v-col cols="6">
-                  아이템 레벨
-                  <strong>
-                    {{ profile.itemAvgLevel }}
-                  </strong>
-                </v-col>
-
-                <v-col cols="6">
-                  원정대 레벨
-                  <strong>
-                    {{ profile.expeditionLevel }}
-                  </strong>
-                </v-col>
-
-                <v-col cols="6">
-                  길드
-                  <strong>
-                    {{ profile.guildName || '-' }}
-                  </strong>
-                </v-col>
-              </v-row>
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
+      <CharacterProfile v-else-if="profile" :profile="profile" detail>
+        <FavoriteButton :character-name="profile.characterName" />
+      </CharacterProfile>
     </v-container>
   </v-main>
 </template>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #0d1117;
+.detail-shell {
+  max-width: 1000px;
 }
-
-.detail-card {
-  background: rgba(23, 28, 38, 0.94);
-  border: 1px solid #263246;
+.back-link {
+  display: inline-block;
+  margin-bottom: 28px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.back-link:hover {
+  color: var(--text);
+}
+.detail-label {
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--muted);
 }
 </style>
