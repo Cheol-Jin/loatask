@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import FavoriteButton from '@/components/FavoriteButton.vue'
+import { useFavoriteStore } from '@/stores/favoriteStore'
 import { storeToRefs } from 'pinia'
 import { useCharacterStore } from '@/stores/characterStore'
 import { getSearchRankings } from '@/api/lostarkApi'
@@ -8,6 +10,7 @@ import type { CharacterSearchRanking } from '@/types/lostark'
 const router = useRouter()
 const route = useRoute()
 
+const favorites = useFavoriteStore()
 const characterStore = useCharacterStore()
 const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
 
@@ -62,8 +65,7 @@ const handleSearch = async () => {
 
 const searchPopularCharacter = async (characterName: string) => {
   searchKeyword.value = characterName
-  await characterStore.searchCharacter(characterName)
-  await fetchSearchRankings()
+  await handleSearch()
 }
 </script>
 
@@ -114,6 +116,47 @@ const searchPopularCharacter = async (characterName: string) => {
       <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-6" rounded="xl">
         {{ errorMessage }}
       </v-alert>
+
+      <v-alert
+        v-if="favorites.storageMessage"
+        type="warning"
+        variant="tonal"
+        class="mb-6"
+        role="status"
+      >
+        {{ favorites.storageMessage }}
+      </v-alert>
+
+      <v-card rounded="xl" class="ranking-card mb-6" aria-label="즐겨찾기 목록">
+        <v-card-title>즐겨찾기</v-card-title>
+        <v-card-text>
+          <p class="mb-3">
+            이 브라우저에 저장됩니다. 브라우저 데이터를 삭제하면 목록도 삭제됩니다.
+          </p>
+          <p v-if="!favorites.names.length">
+            검색한 캐릭터의 별 버튼을 눌러 즐겨찾기에 추가해 보세요.
+          </p>
+          <v-list v-else bg-color="transparent">
+            <v-list-item v-for="name in favorites.names" :key="name">
+              <v-btn
+                variant="text"
+                :aria-label="`${name} 검색`"
+                @click="searchPopularCharacter(name)"
+              >
+                {{ name }}
+              </v-btn>
+              <template #append>
+                <v-btn
+                  icon="mdi-star-off-outline"
+                  variant="text"
+                  :aria-label="`${name} 즐겨찾기 해제`"
+                  @click="favorites.toggle(name)"
+                />
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+      </v-card>
 
       <v-row align="start">
         <v-col cols="12" md="8">
@@ -213,6 +256,10 @@ const searchPopularCharacter = async (characterName: string) => {
                       </v-sheet>
                     </v-col>
                   </v-row>
+                  <FavoriteButton
+                    :character-name="searchedProfile.characterName"
+                    class="mr-3 mb-3"
+                  />
                   <v-btn
                     color="blue-lighten-1"
                     rounded="xl"

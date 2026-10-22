@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import FavoriteButton from '@/components/FavoriteButton.vue'
+import { useFavoriteStore } from '@/stores/favoriteStore'
 import { useRoute } from 'vue-router'
 import { getCharacterErrorMessage, getCharacterProfile } from '@/api/lostarkApi'
 import type { LostArkProfile } from '@/types/lostark'
 
 const route = useRoute()
+const favorites = useFavoriteStore()
 
 const profile = ref<LostArkProfile | null>(null)
 
@@ -36,6 +39,15 @@ watch(() => route.params.name, loadCharacter, { immediate: true })
 <template>
   <v-main class="page">
     <v-container class="py-10">
+      <v-alert
+        v-if="favorites.storageMessage"
+        type="warning"
+        variant="tonal"
+        class="mb-6"
+        role="status"
+      >
+        {{ favorites.storageMessage }}
+      </v-alert>
       <v-card v-if="loading" rounded="xl" class="detail-card" aria-label="캐릭터 정보 조회 중">
         <v-skeleton-loader type="image, article" />
       </v-card>
@@ -63,6 +75,10 @@ watch(() => route.params.name, loadCharacter, { immediate: true })
               <v-chip class="mt-3" color="blue">
                 {{ profile.characterClassName }}
               </v-chip>
+
+              <div class="mt-4">
+                <FavoriteButton :character-name="profile.characterName" />
+              </div>
 
               <v-divider class="my-6" />
 
