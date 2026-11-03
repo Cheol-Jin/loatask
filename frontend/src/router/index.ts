@@ -10,6 +10,11 @@ const router = createRouter({
 
   routes: [
     {
+      path: '/fortune',
+      name: 'fortune',
+      component: () => import('@/views/FortuneView.vue'),
+    },
+    {
       path: '/',
       name: 'characterSearch',
       component: CharacterListView,

@@ -14,6 +14,7 @@ const route = useRoute()
             :class="{ active: route.path === '/' || route.name === 'characterDetail' }"
             >캐릭터 검색</RouterLink
           >
+          <RouterLink to="/fortune" active-class="active">욤의 운세</RouterLink>
           <RouterLink to="/community" active-class="active">커뮤니티</RouterLink>
           <RouterLink to="/chatbot" active-class="active">챗봇</RouterLink>
         </nav>
@@ -54,10 +55,13 @@ const route = useRoute()
   display: flex;
   gap: 30px;
   height: 100%;
+  min-width: 0;
+  overflow-x: auto;
 }
 .nav-menu a {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   border-bottom: 2px solid transparent;
   font-size: 14px;
   color: var(--muted);
@@ -80,13 +84,13 @@ const route = useRoute()
 }
 @media (max-width: 600px) {
   .header-inner {
-    gap: 24px;
+    gap: 16px;
   }
   .logo {
     font-size: 18px;
   }
   .nav-menu {
-    gap: 18px;
+    gap: 14px;
   }
   .nav-menu a {
     font-size: 12px;
