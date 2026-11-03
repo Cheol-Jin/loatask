@@ -5,7 +5,7 @@ const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 
 const lostarkApi = axios.create({
   baseURL: configuredApiUrl || 'http://localhost:8080/api/lostark',
-  timeout: 20_000,
+  timeout: import.meta.env.PROD ? 90_000 : 20_000,
 })
 
 class CharacterProfileError extends Error {}

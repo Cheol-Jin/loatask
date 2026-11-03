@@ -1,0 +1,14 @@
+.git
+.gradle
+build
+frontend
+.idea
+.vscode
+.env
+.env.*
+**/*.local
+**/*.pem
+**/*.p12
+**/*.jks
+src/main/resources/application.properties
+compose.yaml

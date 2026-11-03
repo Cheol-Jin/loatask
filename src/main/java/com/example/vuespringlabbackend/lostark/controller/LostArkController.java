@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterImportRequest;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/lostark")
-@CrossOrigin(origins = "http://localhost:5173")
 public class LostArkController {
 
     private final LostArkCharacterService characterService;

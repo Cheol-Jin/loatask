@@ -168,3 +168,40 @@ GitHub의 `loatask` 저장소를 Import하고 아래 값을 사용합니다.
 백엔드 배포 전에는 환경변수를 비워 둡니다. 운세와 화면은 사용할 수 있고, 캐릭터 조회는 서버 연결 준비 중으로 안내합니다. 배포된 화면에서 방문자의 localhost로 API를 호출하지 않습니다.
 
 백엔드 배포 후 Vercel 환경변수 `VITE_API_BASE_URL`에 `https://백엔드주소/api/lostark`를 설정하고 다시 배포합니다. `VITE_` 변수는 브라우저에 공개되므로 API 키나 DB 비밀번호를 넣지 않습니다. 로컬 개발에서는 변수가 없으면 기존 `http://localhost:8080/api/lostark`를 사용합니다.
+
+## 백엔드 무료 배포 준비 (Aiven MySQL + Render)
+
+기존 로컬 DB를 복사하지 않고 **새 Aiven Free MySQL**을 만듭니다. 무료 플랜은 클라우드와 지역을 직접 선택할 수 없습니다. 서비스가 Running이 되면 Overview/Quick connect에서 연결 정보를 확인하고 CA 인증서를 다운로드합니다. 접속 URI에 포함된 비밀번호를 Git이나 채팅에 공유하지 않습니다.
+
+Render의 New → Web Service에서 GitHub 저장소 `Cheol-Jin/loatask`를 선택합니다.
+
+| 항목 | 값 |
+| --- | --- |
+| Language / Runtime | Docker |
+| Branch | main |
+| Root Directory | 비워 둠 (저장소 루트) |
+| Dockerfile Path | `./Dockerfile` |
+| Instance Type | Free |
+| Health Check Path | `/api/lostark/status` |
+
+Render 환경변수는 다음과 같이 설정합니다. 아래 URL의 HOST·PORT는 Aiven 값으로 바꿉니다.
+
+| 변수 | 값 |
+| --- | --- |
+| DB_JDBC_URL | `jdbc:mysql://HOST:PORT/defaultdb?sslMode=VERIFY_IDENTITY&serverTimezone=UTC` |
+| DB_USERNAME | Aiven 사용자명 |
+| DB_PASSWORD | Aiven 비밀번호 |
+| LOSTARK_API_KEY | 로스트아크 공식 API 키 (Bearer 접두사 없이 키만) |
+| FRONTEND_ORIGIN | `https://loatask.vercel.app` |
+
+Render의 Secret Files에 `aiven-ca.pem`이라는 이름으로 Aiven CA 인증서 전체 내용을 등록합니다. 컨테이너는 이 인증서를 임시 Java truststore로 변환하고 MySQL 서버 인증서를 검증합니다. 인증서 파일이 없으면 시작을 중단합니다. 인증서·비밀번호·API 키는 Docker 이미지에 포함하지 않습니다.
+
+Docker는 테스트를 포함한 Gradle build를 실행하고 Java 17에서 앱을 시작합니다. 실행 시 prod 프로필이 선택되며 Render의 PORT를 사용합니다. 로컬 application.properties는 빌드에 복사하지 않습니다. prod 설정은 연결된 DB에 두 테이블을 없을 때만 생성한 후 Hibernate로 구조를 검증합니다. 기존 테이블을 수정하거나 데이터를 삭제하지 않으므로 **새 배포용 DB**에 연결하세요. 향후 테이블 변경은 별도 마이그레이션을 준비해야 합니다.
+
+prod에서는 인증이 없는 캐릭터 등록·수정·삭제·import API를 차단하고 조회만 허용합니다. 공식 프로필 조회에 따른 검색 횟수 집계는 계속 저장됩니다. Redis는 현재 기능에서 사용하지 않아 별도 서버가 필요하지 않습니다.
+
+Render가 Live가 되면 `/api/lostark/status`와 `/api/lostark/search/rankings`를 확인합니다. Vercel의 VITE_API_BASE_URL을 `https://실제-Render-주소/api/lostark`로 설정하고 새 배포를 실행합니다. Free 서버가 쉬고 있으면 첫 요청에 약 1분 걸릴 수 있어 배포 화면의 API 대기 시간을 90초로 설정했습니다.
+
+로컬 검증의 prod 테스트는 H2 메모리 DB를 사용해 초기 스키마, 검색 집계, CORS, 관리 API 차단을 확인합니다. 실제 Aiven/MySQL 연결, 컨테이너 실행, 512MB 내 메모리 사용은 Render 배포에서 추가 확인해야 합니다.
+
+로컬 `application.properties`는 Git 추적에서 제외했습니다. 과거 커밋에 비밀 값이 들어갔다면 기록에서 사라지는 것은 아니므로, 로스트아크 API 키를 교체하고 배포에는 새 키를 사용하세요. 로컬 파일은 유지됩니다.
