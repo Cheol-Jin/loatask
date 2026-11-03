@@ -149,3 +149,22 @@ node --test tests/favoriteStore.test.mjs
 12장의 창작 카드를 섞어 세 장을 보여주며, 선택한 카드의 준비된 주제별 해석을 표시합니다. 다시 뽑기와 주제 변경이 가능하며, 새로고침하면 결과가 초기화됩니다. 실제 게임 확률을 예측하지 않습니다. 고민 입력란은 준비 중으로 비활성화되어 있고 AI 호출·고민 저장·전송은 구현하지 않았습니다.
 
 운세 데이터와 셔플 검증: `cd frontend` 후 `node --test tests/fortune.test.mjs`
+
+## 프론트엔드 무료 배포 (Vercel)
+
+GitHub의 `loatask` 저장소를 Import하고 아래 값을 사용합니다.
+
+| 항목 | 값 |
+| --- | --- |
+| Root Directory | `frontend` |
+| Framework Preset | Vite |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Install Command | `npm ci` |
+| Node.js Version | 24.x |
+
+`frontend/vercel.json`의 rewrite는 `/fortune`이나 `/character/이름`으로 직접 접속하거나 새로고침해도 Vue 화면을 제공하도록 합니다.
+
+백엔드 배포 전에는 환경변수를 비워 둡니다. 운세와 화면은 사용할 수 있고, 캐릭터 조회는 서버 연결 준비 중으로 안내합니다. 배포된 화면에서 방문자의 localhost로 API를 호출하지 않습니다.
+
+백엔드 배포 후 Vercel 환경변수 `VITE_API_BASE_URL`에 `https://백엔드주소/api/lostark`를 설정하고 다시 배포합니다. `VITE_` 변수는 브라우저에 공개되므로 API 키나 DB 비밀번호를 넣지 않습니다. 로컬 개발에서는 변수가 없으면 기존 `http://localhost:8080/api/lostark`를 사용합니다.

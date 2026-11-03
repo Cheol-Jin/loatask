@@ -1,12 +1,24 @@
 import axios from 'axios'
 import type { LostArkCharacter, LostArkProfile, CharacterSearchRanking } from '@/types/lostark'
 
+const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+
 const lostarkApi = axios.create({
-  baseURL: 'http://localhost:8080/api/lostark',
+  baseURL: configuredApiUrl || 'http://localhost:8080/api/lostark',
   timeout: 20_000,
 })
 
 class CharacterProfileError extends Error {}
+
+// 프론트엔드만 먼저 배포한 경우 방문자의 localhost로 요청하지 않습니다.
+lostarkApi.interceptors.request.use((config) => {
+  if (import.meta.env.PROD && !configuredApiUrl) {
+    throw new CharacterProfileError(
+      '캐릭터 조회 서버 연결을 준비 중입니다. 운세 기능은 이용할 수 있습니다.',
+    )
+  }
+  return config
+})
 
 export const getCharacterErrorMessage = (error: unknown): string => {
   if (error instanceof CharacterProfileError) return error.message
