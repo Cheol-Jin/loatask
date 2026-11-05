@@ -184,7 +184,7 @@ const navigation = [
             v-for="(tripod, tierIndex) in skill.tripods?.filter((entry) => entry.selected) ?? []"
             :key="tierIndex"
           >
-            {{ tripod.tier }}단계 · {{ plainText(tripod.name) }}
+            {{ tripod.tier + 1 }}단계 · {{ plainText(tripod.name) }}
           </p>
           <p v-for="(line, lineIndex) in tooltipLines(skill.tooltip)" :key="`line-${lineIndex}`">
             {{ line }}
