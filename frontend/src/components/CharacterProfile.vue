@@ -25,7 +25,7 @@ defineProps<{ profile: LostArkProfile; detail?: boolean }>()
           <span>아이템 레벨</span><strong>{{ profile.itemAvgLevel || '—' }}</strong>
         </div>
         <dl class="stats">
-          <div>
+          <div v-if="profile.itemMaxLevel">
             <dt>최대 아이템 레벨</dt>
             <dd>{{ profile.itemMaxLevel || '—' }}</dd>
           </div>

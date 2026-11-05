@@ -1,5 +1,10 @@
 import axios from 'axios'
-import type { LostArkCharacter, LostArkProfile, CharacterSearchRanking } from '@/types/lostark'
+import type {
+  LostArkCharacter,
+  LostArkProfile,
+  CharacterSearchRanking,
+  LostArkArmory,
+} from '@/types/lostark'
 
 const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 
@@ -65,5 +70,17 @@ export const getCharacterProfile = async (characterName: string): Promise<LostAr
 
 export const getSearchRankings = async (): Promise<CharacterSearchRanking[]> => {
   const response = await lostarkApi.get<CharacterSearchRanking[]>('/search/rankings')
+  return response.data
+}
+
+export const getCharacterArmory = async (characterName: string): Promise<LostArkArmory> => {
+  const name = characterName.trim()
+  if (!name) throw new CharacterProfileError('캐릭터명을 입력해 주세요.')
+  const response = await lostarkApi.get<LostArkArmory | null>(
+    `/official/characters/${encodeURIComponent(name)}/armory`,
+  )
+  if (!response.data?.profile?.characterName?.trim()) {
+    throw new CharacterProfileError('캐릭터를 찾을 수 없습니다. 캐릭터명을 확인해 주세요.')
+  }
   return response.data
 }

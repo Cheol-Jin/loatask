@@ -1,6 +1,7 @@
 package com.example.vuespringlabbackend.lostark.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import java.util.List;
 
 public record LostArkProfileResponse(
 
@@ -35,10 +36,10 @@ public record LostArkProfileResponse(
         Integer totalSkillPoint,
 
         @JsonAlias("Stats")
-        Object stats,
+        List<Stat> stats,
 
         @JsonAlias("Tendencies")
-        Object tendencies,
+        List<Tendency> tendencies,
 
         @JsonAlias("ServerName")
         String serverName,
@@ -56,6 +57,13 @@ public record LostArkProfileResponse(
         String itemAvgLevel,
 
         @JsonAlias("ItemMaxLevel")
-        String itemMaxLevel
+        String itemMaxLevel,
+
+        @JsonAlias("CombatPower")
+        String combatPower
 ) {
+    public record Stat(@JsonAlias("Type") String type, @JsonAlias("Value") String value,
+                       @JsonAlias("Tooltip") List<String> tooltip) {}
+    public record Tendency(@JsonAlias("Type") String type, @JsonAlias("Point") Integer point,
+                           @JsonAlias("MaxPoint") Integer maxPoint) {}
 }

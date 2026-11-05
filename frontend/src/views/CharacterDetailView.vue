@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import CharacterProfile from '@/components/CharacterProfile.vue'
+import CharacterArmory from '@/components/CharacterArmory.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
 import { useFavoriteStore } from '@/stores/favoriteStore'
 import { useRoute } from 'vue-router'
-import { getCharacterErrorMessage, getCharacterProfile } from '@/api/lostarkApi'
-import type { LostArkProfile } from '@/types/lostark'
+import { getCharacterErrorMessage, getCharacterArmory } from '@/api/lostarkApi'
+import type { LostArkArmory } from '@/types/lostark'
 
 const route = useRoute()
 const favorites = useFavoriteStore()
 
-const profile = ref<LostArkProfile | null>(null)
+const armory = ref<LostArkArmory | null>(null)
 
 const loading = ref(false)
 const errorMessage = ref('')
@@ -21,12 +22,12 @@ const loadCharacter = async () => {
   const name = typeof route.params.name === 'string' ? route.params.name : ''
 
   loading.value = true
-  profile.value = null
+  armory.value = null
   errorMessage.value = ''
 
   try {
-    const result = await getCharacterProfile(name)
-    if (currentRequestId === requestId) profile.value = result
+    const result = await getCharacterArmory(name)
+    if (currentRequestId === requestId) armory.value = result
   } catch (error) {
     if (currentRequestId === requestId) errorMessage.value = getCharacterErrorMessage(error)
   } finally {
@@ -41,7 +42,7 @@ watch(() => route.params.name, loadCharacter, { immediate: true })
   <v-main>
     <v-container class="page-shell detail-shell">
       <RouterLink :to="{ name: 'characterSearch' }" class="back-link">← 캐릭터 검색</RouterLink>
-      <p class="detail-label">캐릭터 기본 프로필</p>
+      <p class="detail-label">캐릭터 상세정보</p>
       <v-alert
         v-if="favorites.storageMessage"
         type="warning"
@@ -58,16 +59,19 @@ watch(() => route.params.name, loadCharacter, { immediate: true })
           ><v-btn variant="text" :to="{ name: 'characterSearch' }">검색 화면으로</v-btn>
         </div>
       </v-alert>
-      <CharacterProfile v-else-if="profile" :profile="profile" detail>
-        <FavoriteButton :character-name="profile.characterName" />
-      </CharacterProfile>
+      <template v-else-if="armory">
+        <CharacterProfile :profile="armory.profile" detail>
+          <FavoriteButton :character-name="armory.profile.characterName" />
+        </CharacterProfile>
+        <CharacterArmory :armory="armory" />
+      </template>
     </v-container>
   </v-main>
 </template>
 
 <style scoped>
 .detail-shell {
-  max-width: 1000px;
+  max-width: 1200px;
 }
 .back-link {
   display: inline-block;

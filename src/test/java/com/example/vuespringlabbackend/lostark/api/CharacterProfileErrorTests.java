@@ -94,6 +94,76 @@ class CharacterProfileErrorTests {
         assertFailure(502, "LOSTARK_API_ERROR");
     }
 
+    @Test
+    void armoryMapsNestedOfficialFieldsAndRecordsOnlyOneSearch() throws Exception {
+        expectArmory().andRespond(withSuccess("""
+                {
+                  "ArmoryProfile":{"CharacterName":"test-character","CombatPower":"123,456",
+                    "Stats":[{"Type":"특화","Value":"1800","Tooltip":[]}],
+                    "Tendencies":[{"Type":"지성","Point":500,"MaxPoint":1000}]},
+                  "ArmoryEquipment":[{"Type":"무기","Name":"테스트 무기","Grade":"고대","Tooltip":"{}"}],
+                  "ArmoryEngraving":{"Effects":null,"ArkPassiveEffects":[{"Name":"원한","Level":4,"Grade":"유물","AbilityStoneLevel":2}]},
+                  "ArmoryGem":{"Gems":[{"Slot":0,"Name":"겁화","Level":10}],
+                    "Effects":{"Skills":[{"GemSlot":0,"Name":"종말의 날","Description":["피해 증가"]}]}},
+                  "ArmoryCard":{"Cards":[{"Slot":0,"Name":"카단","AwakeCount":5,"AwakeTotal":5}],
+                    "Effects":[{"Items":[{"Name":"세트 효과","Description":"피해 증가"}]}]},
+                  "ArmorySkills":[{"Name":"종말의 날","Level":14,"Tripods":[{"Tier":1,"Name":"선택","IsSelected":true}]}],
+                  "ArkPassive":{"IsArkPassive":true,"Points":[{"Name":"진화","Value":120}],"Effects":[]}
+                }
+                """, MediaType.APPLICATION_JSON));
+        mvc.perform(get("/api/lostark/official/characters/test-character/armory"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profile.characterName").value("test-character"))
+                .andExpect(jsonPath("$.profile.combatPower").value("123,456"))
+                .andExpect(jsonPath("$.profile.stats[0].value").value("1800"))
+                .andExpect(jsonPath("$.equipment[0].type").value("무기"))
+                .andExpect(jsonPath("$.engravings.arkPassiveEffects[0].abilityStoneLevel").value(2))
+                .andExpect(jsonPath("$.gems.effects.skills[0].gemSlot").value(0))
+                .andExpect(jsonPath("$.cards.cards[0].awakeCount").value(5))
+                .andExpect(jsonPath("$.skills[0].tripods[0].selected").value(true))
+                .andExpect(jsonPath("$.arkPassive.active").value(true));
+        verify(searches, times(1)).recordSearch("test-character");
+        officialApi.verify();
+    }
+
+    @Test
+    void armoryAllowsUnequippedCharacters() throws Exception {
+        expectArmory().andRespond(withSuccess("""
+                {"ArmoryProfile":{"CharacterName":"test-character"},"ArmoryEquipment":null,"ArmorySkills":null}
+                """, MediaType.APPLICATION_JSON));
+        mvc.perform(get("/api/lostark/official/characters/test-character/armory"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.equipment").isEmpty())
+                .andExpect(jsonPath("$.skills").isEmpty());
+        officialApi.verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "{}", "{\"ArmoryProfile\":{}}"})
+    void emptyArmoryDoesNotRecordSearch(String body) throws Exception {
+        expectArmory().andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        mvc.perform(get("/api/lostark/official/characters/test-character/armory"))
+                .andExpect(status().isNotFound());
+        verifyNoInteractions(searches);
+        officialApi.verify();
+    }
+
+    @Test
+    void armoryRateLimitDoesNotLeakUpstreamResponse() throws Exception {
+        expectArmory().andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("private-upstream-error"));
+        mvc.perform(get("/api/lostark/official/characters/test-character/armory"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("LOSTARK_RATE_LIMITED"))
+                .andExpect(content().string(not(containsString("private-"))));
+        verifyNoInteractions(searches);
+        officialApi.verify();
+    }
+
+    private ResponseActions expectArmory() {
+        return officialApi.expect(requestTo("https://official-api.invalid/armories/characters/test-character"
+                + "?filters=profiles%2Bequipment%2Bengravings%2Bgems%2Bcards%2Bcombat-skills%2Barkpassive"));
+    }
+
     private ResponseActions expectRequest() {
         return officialApi.expect(requestTo("https://official-api.invalid/armories/characters/test-character/profiles"));
     }

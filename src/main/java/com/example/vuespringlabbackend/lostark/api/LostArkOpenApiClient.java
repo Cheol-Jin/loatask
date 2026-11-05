@@ -1,6 +1,7 @@
 package com.example.vuespringlabbackend.lostark.api;
 
 import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
+import com.example.vuespringlabbackend.lostark.dto.LostArkArmoryResponse;
 import com.example.vuespringlabbackend.lostark.exception.CharacterProfileException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,20 +18,36 @@ public class LostArkOpenApiClient {
     private final RestClient lostArkRestClient;
 
     public LostArkProfileResponse getCharacterProfile(String characterName) {
+        LostArkProfileResponse profile = fetch("/armories/characters/{characterName}/profiles",
+                characterName, LostArkProfileResponse.class);
+        requireProfile(profile);
+        return profile;
+    }
+
+    public LostArkArmoryResponse getCharacterArmory(String characterName) {
+        // 필요한 항목을 한 요청으로 조회하여 외부 API 호출 수를 줄입니다.
+        LostArkArmoryResponse armory = fetch(
+                "/armories/characters/{characterName}?filters={filters}",
+                characterName, LostArkArmoryResponse.class,
+                "profiles+equipment+engravings+gems+cards+combat-skills+arkpassive");
+        requireProfile(armory == null ? null : armory.profile());
+        return armory;
+    }
+
+    private void requireProfile(LostArkProfileResponse profile) {
+        if (profile == null || profile.characterName() == null || profile.characterName().isBlank()) {
+            throw notFound();
+        }
+    }
+
+    private <T> T fetch(String path, String characterName, Class<T> type, String... filters) {
         if (characterName == null || characterName.isBlank()) {
             throw new IllegalArgumentException("캐릭터명을 입력해 주세요.");
         }
-
         try {
-            LostArkProfileResponse profile = lostArkRestClient.get()
-                    .uri("/armories/characters/{characterName}/profiles", characterName.trim())
-                    .retrieve()
-                    .body(LostArkProfileResponse.class);
-
-            if (profile == null || profile.characterName() == null || profile.characterName().isBlank()) {
-                throw notFound();
-            }
-            return profile;
+            Object[] variables = filters.length == 0
+                    ? new Object[]{characterName.trim()} : new Object[]{characterName.trim(), filters[0]};
+            return lostArkRestClient.get().uri(path, variables).retrieve().body(type);
         } catch (RestClientResponseException e) {
             if (e.getStatusCode().value() == 404) {
                 throw notFound();
