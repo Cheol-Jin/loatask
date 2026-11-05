@@ -160,7 +160,7 @@ const navigation = [
         <h2 id="skill-title">스킬 · 트라이포드</h2>
         <span>Lv.2 이상 {{ activeSkills.length }}개</span>
       </header>
-      <p class="section-note">포인트를 투자한 스킬과 선택된 트라이포드를 표시합니다.</p>
+      <p class="section-note">포인트를 투자한 스킬입니다. 누르면 선택된 트라이포드와 상세 설명이 펼쳐집니다.</p>
       <details v-for="(skill, index) in activeSkills" :key="index" class="skill-row">
         <summary>
           <img
@@ -257,7 +257,7 @@ const navigation = [
   background: var(--surface);
   padding: 24px;
   min-width: 0;
-  scroll-margin-top: 24px;
+  scroll-margin-top: 88px;
 }
 .armory-section > header {
   display: flex;
