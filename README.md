@@ -194,7 +194,7 @@ Render 환경변수는 다음과 같이 설정합니다. 아래 URL의 HOST·POR
 | LOSTARK_API_KEY | 로스트아크 공식 API 키 (Bearer 접두사 없이 키만) |
 | FRONTEND_ORIGIN | `https://loatask.vercel.app` |
 
-Render의 Secret Files에 `aiven-ca.pem`이라는 이름으로 Aiven CA 인증서 전체 내용을 등록합니다. 컨테이너는 이 인증서를 임시 Java truststore로 변환하고 MySQL 서버 인증서를 검증합니다. 인증서 파일이 없으면 시작을 중단합니다. 인증서·비밀번호·API 키는 Docker 이미지에 포함하지 않습니다.
+Render의 Secret Files에 `aiven-ca.pem`이라는 이름으로 Aiven CA 인증서 전체 내용을 등록합니다. 컨테이너는 Java 기본 공인 인증서 저장소를 임시 truststore로 복사한 뒤 Aiven CA를 추가합니다. 따라서 MySQL 서버 인증서와 로스트아크 API의 공인 HTTPS 인증서를 모두 검증할 수 있습니다. 인증서 파일이 없으면 시작을 중단합니다. 인증서·비밀번호·API 키는 Docker 이미지에 포함하지 않습니다.
 
 Docker는 테스트를 포함한 Gradle build를 실행하고 Java 17에서 앱을 시작합니다. 실행 시 prod 프로필이 선택되며 Render의 PORT를 사용합니다. 로컬 application.properties는 빌드에 복사하지 않습니다. prod 설정은 연결된 DB에 두 테이블을 없을 때만 생성한 후 Hibernate로 구조를 검증합니다. 기존 테이블을 수정하거나 데이터를 삭제하지 않으므로 **새 배포용 DB**에 연결하세요. 향후 테이블 변경은 별도 마이그레이션을 준비해야 합니다.
 

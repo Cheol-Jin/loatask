@@ -8,6 +8,11 @@ if [ ! -f /etc/secrets/aiven-ca.pem ]; then
 fi
 TRUSTSTORE_PASSWORD="$(head -c 24 /dev/urandom | base64)"
 export TRUSTSTORE_PASSWORD
+# 공인 HTTPS 인증서도 계속 신뢰하도록 Java 기본 인증서 저장소를 먼저 복사합니다.
+keytool -importkeystore -noprompt \
+  -srckeystore "$JAVA_HOME/lib/security/cacerts" -srcstorepass changeit \
+  -destkeystore /tmp/aiven-truststore.p12 -deststoretype PKCS12 \
+  -deststorepass:env TRUSTSTORE_PASSWORD >/dev/null 2>&1
 keytool -importcert -noprompt -alias aiven-ca \
   -file /etc/secrets/aiven-ca.pem -keystore /tmp/aiven-truststore.p12 \
   -storetype PKCS12 -storepass:env TRUSTSTORE_PASSWORD >/dev/null 2>&1
