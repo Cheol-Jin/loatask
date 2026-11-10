@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CharacterProfileErrorTests {
 
     private static final String PROFILE_URL = "/api/lostark/official/characters/test-character/profile";
+    private final AtomicLong time = new AtomicLong();
     private MockRestServiceServer officialApi;
     private MockMvc mvc;
     private CharacterSearchService searches;
@@ -40,7 +43,7 @@ class CharacterProfileErrorTests {
         officialApi = MockRestServiceServer.bindTo(builder).build();
         searches = mock(CharacterSearchService.class);
         LostArkController controller = new LostArkController(mock(LostArkCharacterService.class),
-                new LostArkOpenApiClient(builder.build()), searches);
+                new LostArkOpenApiClient(builder.build(), time::get), searches);
         mvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
@@ -162,6 +165,66 @@ class CharacterProfileErrorTests {
     private ResponseActions expectArmory() {
         return officialApi.expect(requestTo("https://official-api.invalid/armories/characters/test-character"
                 + "?filters=profiles%2Bequipment%2Bengravings%2Bgems%2Bcards%2Bcombat-skills%2Barkpassive"));
+    }
+
+    @Test
+    void cacheHitAvoidsOfficialCallButStillRecordsEachSearch() throws Exception {
+        expectProfile("original");
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk());
+        time.set(Duration.ofSeconds(59).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.serverName").value("original"));
+        verify(searches, times(2)).recordSearch("test-character");
+        officialApi.verify();
+    }
+
+    @Test
+    void temporaryFailureReturnsStaleDataAndRetriesAfterCooldown() throws Exception {
+        expectProfile("original");
+        expectRequest().andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+        expectProfile("updated");
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk());
+        time.set(Duration.ofSeconds(60).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.serverName").value("original"));
+        time.set(Duration.ofSeconds(74).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.serverName").value("original"));
+        time.set(Duration.ofSeconds(75).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.serverName").value("updated"));
+        officialApi.verify();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"404,404", "401,502", "403,502"})
+    void permanentFailureIsNotHiddenByExpiredProfile(int upstreamStatus, int status) throws Exception {
+        expectProfile("original");
+        expectRequest().andRespond(withStatus(HttpStatus.valueOf(upstreamStatus)));
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk());
+        time.set(Duration.ofSeconds(60).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().is(status));
+        verify(searches).recordSearch("test-character");
+        officialApi.verify();
+    }
+
+    @Test
+    void dataAtMaximumAgeIsNotReturnedEvenDuringRetryDelay() throws Exception {
+        expectProfile("original");
+        expectRequest().andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        expectRequest().andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk());
+        time.set(Duration.ofSeconds(599).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isOk());
+        time.set(Duration.ofMinutes(10).toNanos());
+        mvc.perform(get(PROFILE_URL)).andExpect(status().isBadGateway());
+        officialApi.verify();
+    }
+
+    private void expectProfile(String server) {
+        expectRequest().andRespond(withSuccess("""
+                {"CharacterName":"test-character","ServerName":"%s"}
+                """.formatted(server), MediaType.APPLICATION_JSON));
     }
 
     private ResponseActions expectRequest() {

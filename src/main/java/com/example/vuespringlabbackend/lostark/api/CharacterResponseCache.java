@@ -1,0 +1,103 @@
+package com.example.vuespringlabbackend.lostark.api;
+
+import com.example.vuespringlabbackend.lostark.exception.CharacterProfileException;
+
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
+/** 프로세스 내 개수 제한 캐시. 시간 비교는 시스템 시각 변경에 영향받지 않습니다. */
+final class CharacterResponseCache<T> {
+    private static final long FRESH = Duration.ofSeconds(60).toNanos();
+    private static final long MAX_AGE = Duration.ofMinutes(10).toNanos();
+    private static final long RETRY_DELAY = Duration.ofSeconds(15).toNanos();
+
+    private record Entry<T>(T value, long loadedAt, Long failedAt) {
+        boolean usableWithoutRefresh(long now) {
+            long age = now - loadedAt;
+            return age < FRESH || (age < MAX_AGE && failedAt != null && now - failedAt < RETRY_DELAY);
+        }
+    }
+
+    private final int capacity;
+    private final LongSupplier ticker;
+    private final Map<String, Entry<T>> entries = new LinkedHashMap<>(16, 0.75f, true);
+    private final Map<String, CompletableFuture<T>> inFlight = new ConcurrentHashMap<>();
+
+    CharacterResponseCache(int capacity, LongSupplier ticker) {
+        this.capacity = capacity;
+        this.ticker = ticker;
+    }
+
+    T get(String name, Supplier<T> loader) {
+        Entry<T> entry = lookup(name);
+        if (entry != null && entry.usableWithoutRefresh(ticker.getAsLong())) return entry.value();
+
+        var future = new CompletableFuture<T>();
+        var active = inFlight.putIfAbsent(name, future);
+        if (active != null) {
+            try {
+                return active.join();
+            } catch (CompletionException ex) {
+                if (ex.getCause() instanceof RuntimeException failure) throw failure;
+                if (ex.getCause() instanceof Error failure) throw failure;
+                throw ex;
+            }
+        }
+
+        try {
+            T value = refresh(name, loader);
+            future.complete(value);
+            return value;
+        } catch (RuntimeException | Error failure) {
+            future.completeExceptionally(failure);
+            throw failure;
+        } finally {
+            inFlight.remove(name, future);
+        }
+    }
+
+    private T refresh(String name, Supplier<T> loader) {
+        // 앞선 요청이 최초 조회와 병합 등록 사이에 갱신했을 수 있습니다.
+        Entry<T> previous = lookup(name);
+        if (previous != null && previous.usableWithoutRefresh(ticker.getAsLong())) return previous.value();
+        try {
+            T value = loader.get();
+            save(name, new Entry<>(value, ticker.getAsLong(), null));
+            return value;
+        } catch (CharacterProfileException failure) {
+            long now = ticker.getAsLong();
+            if (failure.isRetryable() && previous != null && now - previous.loadedAt() < MAX_AGE) {
+                save(name, new Entry<>(previous.value(), previous.loadedAt(), now));
+                return previous.value();
+            }
+            synchronized (entries) {
+                entries.remove(name);
+            }
+            throw failure;
+        }
+    }
+
+    private Entry<T> lookup(String name) {
+        synchronized (entries) {
+            Entry<T> entry = entries.get(name);
+            if (entry != null && ticker.getAsLong() - entry.loadedAt() >= MAX_AGE) {
+                entries.remove(name);
+                return null;
+            }
+            return entry;
+        }
+    }
+
+    private void save(String name, Entry<T> entry) {
+        synchronized (entries) {
+            entries.put(name, entry);
+            if (entries.size() > capacity) entries.remove(entries.keySet().iterator().next());
+        }
+    }
+}

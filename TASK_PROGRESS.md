@@ -117,3 +117,14 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 ## 보안 주의 사항
 
 로컬 `src/main/resources/application.properties`는 Git 추적에서 제거했지만 이전 Git 기록에 실제 인증 정보가 포함됐던 이력이 있습니다. 기존 키 폐기·교체를 안내했으며 교체 완료 여부는 확인하지 않았습니다. 비밀값을 이 파일이나 채팅에 적지 않습니다. 이 파일의 검증 명령은 비밀값을 출력하거나 운영 DB를 변경하기 위한 명령이 아닙니다.
+
+## 2026-11-11: 외부 API 호출 최적화
+
+- 시작 확인: 원본 저장소 main, 추가 worktree 없음. 사용자 변경 두 건 보존.
+- 사용량 조회: 추가 크레딧 0, 기본 사용 가능, 5시간 2% / 주간 43% 사용.
+- 완료: 기본 프로필·상세정보 메모리 캐시, 60초 만료, 일시 장애 시 최대 10분 이내 마지막 성공 응답, 동일 키 동시 요청 병합.
+- 수정: `CharacterResponseCache.java` 신규; `LostArkOpenApiClient.java`, `CharacterProfileException.java`에 캐시 적용 및 일시 오류 구분.
+- 검증: `CharacterProfileErrorTests.java`, `CharacterResponseCacheTests.java`, `CharacterCacheMeasurementTests.java`. 백엔드 빌드 성공, 테스트 33개 통과. 프론트 소스는 변경하지 않아 빌드를 반복하지 않음.
+- 결과: 20회 반복 조회에서 외부 호출 20→1회, 평균 87.848→5.547ms. 모의 지연 조건이며 운영 성능 수치가 아님.
+- 문서: README와 `docs/character-cache.md`에 정책·측정·재현 명령 기록.
+- 다음: 운영 지표가 필요해지면 요청 유형별 적중률·공식 API 429·응답 시간을 측정하고, 여러 인스턴스에서 캐시를 공유할 필요가 있는지 판단.
