@@ -8,11 +8,6 @@
 
 캐릭터명을 입력하면 Lost Ark Open API에서 기본 프로필을 조회해 화면에 보여줍니다. 캐릭터별 누적 검색 횟수와 TOP 10 순위 조회와 브라우저 즐겨찾기 저장을 구현했습니다. 커뮤니티 게시판과 챗봇 등을 차례로 추가할 예정입니다.
 
-## 개발 과정과 검증 기록
-
-- [Codex 요구사항·검토·수정·검증 기록](docs/ai-development-process.md)
-- [다음 작업에서 사용할 AI 작업 기록 양식](docs/templates/ai-task-record.md)
-
 ## 프로젝트의 목표
 
 - Spring Boot 기반 REST API 개발
