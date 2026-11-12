@@ -17,18 +17,30 @@ import org.springframework.web.client.RestClientResponseException;
 public class LostArkOpenApiClient {
 
     private final RestClient lostArkRestClient;
+    private final CharacterApiMetrics metrics;
+    private final LongSupplier ticker;
     private final CharacterResponseCache<LostArkProfileResponse> profiles;
     private final CharacterResponseCache<LostArkArmoryResponse> armories;
 
-    @Autowired
     public LostArkOpenApiClient(RestClient lostArkRestClient) {
         this(lostArkRestClient, System::nanoTime);
     }
 
+    @Autowired
+    public LostArkOpenApiClient(RestClient lostArkRestClient, CharacterApiMetrics metrics) {
+        this(lostArkRestClient, System::nanoTime, metrics);
+    }
+
     LostArkOpenApiClient(RestClient lostArkRestClient, LongSupplier ticker) {
+        this(lostArkRestClient, ticker, new CharacterApiMetrics());
+    }
+
+    LostArkOpenApiClient(RestClient lostArkRestClient, LongSupplier ticker, CharacterApiMetrics metrics) {
         this.lostArkRestClient = lostArkRestClient;
-        this.profiles = new CharacterResponseCache<>(256, ticker);
-        this.armories = new CharacterResponseCache<>(64, ticker);
+        this.metrics = metrics;
+        this.ticker = ticker;
+        this.profiles = new CharacterResponseCache<>(256, ticker, metrics, CharacterApiMetrics.Kind.PROFILE);
+        this.armories = new CharacterResponseCache<>(64, ticker, metrics, CharacterApiMetrics.Kind.ARMORY);
     }
 
     public LostArkProfileResponse getCharacterProfile(String characterName) {
@@ -39,7 +51,6 @@ public class LostArkOpenApiClient {
     private LostArkProfileResponse loadProfile(String characterName) {
         LostArkProfileResponse profile = fetch("/armories/characters/{characterName}/profiles",
                 characterName, LostArkProfileResponse.class);
-        requireProfile(profile);
         return profile;
     }
 
@@ -54,7 +65,6 @@ public class LostArkOpenApiClient {
                 "/armories/characters/{characterName}?filters={filters}",
                 characterName, LostArkArmoryResponse.class,
                 "profiles+equipment+engravings+gems+cards+combat-skills+arkpassive");
-        requireProfile(armory == null ? null : armory.profile());
         return armory;
     }
 
@@ -72,11 +82,21 @@ public class LostArkOpenApiClient {
     }
 
     private <T> T fetch(String path, String characterName, Class<T> type, String... filters) {
+        long start = ticker.getAsLong();
+        var kind = type == LostArkArmoryResponse.class ? CharacterApiMetrics.Kind.ARMORY : CharacterApiMetrics.Kind.PROFILE;
+        var outcome = CharacterApiMetrics.UpstreamResult.INVALID_RESPONSE;
         try {
             Object[] variables = filters.length == 0
                     ? new Object[]{characterName} : new Object[]{characterName, filters[0]};
-            return lostArkRestClient.get().uri(path, variables).retrieve().body(type);
+            T result = lostArkRestClient.get().uri(path, variables).retrieve().body(type);
+            requireProfile(result instanceof LostArkArmoryResponse armory ? armory.profile()
+                    : result instanceof LostArkProfileResponse profile ? profile : null);
+            outcome = CharacterApiMetrics.UpstreamResult.SUCCESS;
+            return result;
         } catch (RestClientResponseException e) {
+            outcome = e.getStatusCode().value() == 429 ? CharacterApiMetrics.UpstreamResult.RATE_LIMITED
+                    : e.getStatusCode().is5xxServerError() ? CharacterApiMetrics.UpstreamResult.SERVER_ERROR
+                    : CharacterApiMetrics.UpstreamResult.HTTP_ERROR;
             if (e.getStatusCode().value() == 404) {
                 throw notFound();
             }
@@ -87,10 +107,13 @@ public class LostArkOpenApiClient {
             // 외부 API의 원문 오류나 인증정보는 사용자 응답에 포함하지 않습니다.
             throw unavailable(e.getStatusCode().is5xxServerError());
         } catch (ResourceAccessException e) {
+            outcome = CharacterApiMetrics.UpstreamResult.CONNECTION_ERROR;
             throw new CharacterProfileException(HttpStatus.SERVICE_UNAVAILABLE,
                     "LOSTARK_CONNECTION_ERROR", "공식 API에 연결하지 못했습니다. 잠시 후 다시 검색해 주세요.", true);
         } catch (RestClientException e) {
             throw unavailable(false);
+        } finally {
+            metrics.upstreamFinished(kind, ticker.getAsLong() - start, outcome);
         }
     }
 

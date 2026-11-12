@@ -128,3 +128,12 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 결과: 20회 반복 조회에서 외부 호출 20→1회, 평균 87.848→5.547ms. 모의 지연 조건이며 운영 성능 수치가 아님.
 - 문서: README와 `docs/character-cache.md`에 정책·측정·재현 명령 기록.
 - 다음: 운영 지표가 필요해지면 요청 유형별 적중률·공식 API 429·응답 시간을 측정하고, 여러 인스턴스에서 캐시를 공유할 필요가 있는지 판단.
+
+## 2026-11-12: 캐시 운영 지표 수집
+
+- 시작: 원본 main, 사용자 변경 두 건 보존. 추가 크레딧 0, 기본 사용 가능(5시간 22% / 주간 6%).
+- 완료: 요청 종류별 조회·적중·미적중·병합·이전 응답·오류·외부 호출 시간 집계. 1분 주기 누적 로그, 캐릭터명/인증정보 기록하지 않음.
+- 변경 파일: CharacterApiMetrics.java 신규, CharacterMetricsLogConfig.java 신규, CharacterResponseCache.java, LostArkOpenApiClient.java, CharacterApiMetricsTests.java 신규, CharacterResponseCacheTests.java, README.md, docs/character-api-metrics.md 신규, TASK_PROGRESS.md.
+- 검증: 백엔드 빌드 성공 및 테스트 41개 통과. H2와 모의 API 사용, 운영 DB 테스트/장애 주입 없음. 프론트 소스 변경 없어 해당 빌드 생략.
+- 비교: 모의 40ms 지연으로 같은/서로 다른 캐릭터 각 20회 조회. 적중 19/0회, 외부 호출 1/20회, 조회 평균 3.063/47.947ms. 실제 운영 측정 수치가 아님.
+- 다음: docs/character-api-metrics.md에 따라 배포 후 같은 인스턴스의 로그 구간을 비교합니다. 운영 로그에서 실제 트래픽 측정은 아직 수행하지 않았습니다. 서버 재시작 시 카운터가 초기화되고 공개 지표 API는 없습니다.

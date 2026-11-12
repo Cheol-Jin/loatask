@@ -22,7 +22,8 @@ class CharacterResponseCacheTests {
 
     @Test
     void concurrentLookupsShareOneLoadWithoutBlockingOtherNames() throws Exception {
-        var cache = new CharacterResponseCache<String>(2, () -> 0L);
+        var metrics = new CharacterApiMetrics();
+        var cache = new CharacterResponseCache<String>(2, () -> 0L, metrics, CharacterApiMetrics.Kind.PROFILE);
         var pool = Executors.newFixedThreadPool(3);
         var entered = new CountDownLatch(1);
         var release = new CountDownLatch(1);
@@ -54,6 +55,13 @@ class CharacterResponseCacheTests {
             assertEquals("shared", first.get(5, TimeUnit.SECONDS));
             assertEquals("shared", second.get(5, TimeUnit.SECONDS));
             assertEquals(1, loads.get());
+            var snapshot = metrics.snapshot(CharacterApiMetrics.Kind.PROFILE);
+            assertEquals(3, snapshot.requests());
+            assertEquals(3, snapshot.completed());
+            assertEquals(0, snapshot.failedRequests());
+            assertEquals(snapshot.requests(), snapshot.cacheHits() + snapshot.cacheMisses());
+            // 두 번째 스레드 실행 시점에 따라 병합 또는 이미 완료된 캐시 적중입니다.
+            assertEquals(1, snapshot.coalescedRequests() + snapshot.cacheHits());
         } finally {
             release.countDown();
             pool.shutdownNow();

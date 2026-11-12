@@ -24,23 +24,53 @@ final class CharacterResponseCache<T> {
         }
     }
 
+    private record Result<T>(T value, boolean stale) {}
+    private final CharacterApiMetrics metrics;
+    private final CharacterApiMetrics.Kind kind;
     private final int capacity;
     private final LongSupplier ticker;
     private final Map<String, Entry<T>> entries = new LinkedHashMap<>(16, 0.75f, true);
-    private final Map<String, CompletableFuture<T>> inFlight = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<Result<T>>> inFlight = new ConcurrentHashMap<>();
 
     CharacterResponseCache(int capacity, LongSupplier ticker) {
+        this(capacity, ticker, new CharacterApiMetrics(), CharacterApiMetrics.Kind.PROFILE);
+    }
+
+    CharacterResponseCache(int capacity, LongSupplier ticker, CharacterApiMetrics metrics, CharacterApiMetrics.Kind kind) {
+        this.metrics = metrics;
+        this.kind = kind;
         this.capacity = capacity;
         this.ticker = ticker;
     }
 
     T get(String name, Supplier<T> loader) {
-        Entry<T> entry = lookup(name);
-        if (entry != null && entry.usableWithoutRefresh(ticker.getAsLong())) return entry.value();
+        long start = ticker.getAsLong();
+        metrics.requestStarted(kind);
+        Result<T> result = null;
+        try {
+            result = resolve(name, loader);
+            return result.value();
+        } finally {
+            metrics.requestFinished(kind, ticker.getAsLong() - start, result != null && result.stale(), result == null);
+        }
+    }
 
-        var future = new CompletableFuture<T>();
+    private Result<T> reused(Entry<T> entry) {
+        return new Result<>(entry.value(), ticker.getAsLong() - entry.loadedAt() >= FRESH);
+    }
+
+    private Result<T> resolve(String name, Supplier<T> loader) {
+        Entry<T> entry = lookup(name);
+        if (entry != null && entry.usableWithoutRefresh(ticker.getAsLong())) {
+            metrics.hit(kind);
+            return reused(entry);
+        }
+        metrics.miss(kind);
+
+        var future = new CompletableFuture<Result<T>>();
         var active = inFlight.putIfAbsent(name, future);
         if (active != null) {
+            metrics.joined(kind);
             try {
                 return active.join();
             } catch (CompletionException ex) {
@@ -51,7 +81,7 @@ final class CharacterResponseCache<T> {
         }
 
         try {
-            T value = refresh(name, loader);
+            Result<T> value = refresh(name, loader);
             future.complete(value);
             return value;
         } catch (RuntimeException | Error failure) {
@@ -62,19 +92,19 @@ final class CharacterResponseCache<T> {
         }
     }
 
-    private T refresh(String name, Supplier<T> loader) {
+    private Result<T> refresh(String name, Supplier<T> loader) {
         // 앞선 요청이 최초 조회와 병합 등록 사이에 갱신했을 수 있습니다.
         Entry<T> previous = lookup(name);
-        if (previous != null && previous.usableWithoutRefresh(ticker.getAsLong())) return previous.value();
+        if (previous != null && previous.usableWithoutRefresh(ticker.getAsLong())) return reused(previous);
         try {
             T value = loader.get();
             save(name, new Entry<>(value, ticker.getAsLong(), null));
-            return value;
+            return new Result<>(value, false);
         } catch (CharacterProfileException failure) {
             long now = ticker.getAsLong();
             if (failure.isRetryable() && previous != null && now - previous.loadedAt() < MAX_AGE) {
                 save(name, new Entry<>(previous.value(), previous.loadedAt(), now));
-                return previous.value();
+                return reused(previous);
             }
             synchronized (entries) {
                 entries.remove(name);

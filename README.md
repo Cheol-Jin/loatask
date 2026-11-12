@@ -144,7 +144,7 @@ node --test tests/favoriteStore.test.mjs
 
 ## 외부 API 호출 최적화
 
-캐릭터 응답을 서버 메모리에 저장해 같은 조회의 공식 API 호출을 줄입니다. [캐시 정책과 비교 측정](docs/character-cache.md)을 참고하세요.
+캐릭터 응답을 서버 메모리에 저장해 같은 조회의 공식 API 호출을 줄입니다. [캐시 정책과 비교 측정](docs/character-cache.md)을 참고하세요. 요청·적중률·외부 지연·오류는 1분마다 서버 로그에 기록하며, [운영 지표 확인 방법](docs/character-api-metrics.md)에 항목과 비교 절차를 정리했습니다.
 
 ## 욤의 오늘의 운세
 
