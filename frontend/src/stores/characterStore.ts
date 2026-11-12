@@ -48,7 +48,15 @@ export const useCharacterStore = defineStore('character', () => {
     }
   }
 
+  const clearSearch = () => {
+    searchRequestId++
+    searchedProfile.value = null
+    errorMessage.value = ''
+    isSearching.value = false
+  }
+
   return {
+    clearSearch,
     characters,
     searchedProfile,
     isLoading,

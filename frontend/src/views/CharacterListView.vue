@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
+import HomeNews from '@/components/HomeNews.vue'
+import HomeFortune from '@/components/HomeFortune.vue'
+import { useRecentSearchStore } from '@/stores/recentSearchStore'
 import CharacterProfile from '@/components/CharacterProfile.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
 import { useFavoriteStore } from '@/stores/favoriteStore'
@@ -12,6 +15,10 @@ const router = useRouter()
 const route = useRoute()
 
 const favorites = useFavoriteStore()
+const recent = useRecentSearchStore()
+const hasQuery = computed(
+  () => typeof route.query.character === 'string' && !!route.query.character.trim(),
+)
 const characterStore = useCharacterStore()
 const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
 
@@ -29,13 +36,32 @@ const fetchSearchRankings = async () => {
   }
 }
 
-onMounted(async () => {
-  const character = route.query.character
-  if (typeof character === 'string' && character.trim()) {
-    searchKeyword.value = character.trim()
-    await characterStore.searchCharacter(searchKeyword.value)
+async function runSearch(name: string) {
+  await characterStore.searchCharacter(name)
+  if (
+    typeof route.query.character === 'string' &&
+    route.query.character.trim() === name &&
+    searchedProfile.value
+  ) {
+    recent.remember(searchedProfile.value.characterName)
   }
   await fetchSearchRankings()
+}
+watch(
+  () => route.query.character,
+  (value) => {
+    if (typeof value === 'string' && value.trim()) {
+      searchKeyword.value = value.trim()
+      void runSearch(value.trim())
+    } else {
+      searchKeyword.value = ''
+      characterStore.clearSearch()
+    }
+  },
+  { immediate: true },
+)
+onMounted(() => {
+  if (!hasQuery.value) void fetchSearchRankings()
 })
 
 const goDetail = () => {
@@ -56,14 +82,11 @@ const handleSearch = async () => {
     return
   }
 
-  await router.replace({
-    query: {
-      character: keyword,
-    },
-  })
-
-  await characterStore.searchCharacter(keyword)
-  await fetchSearchRankings()
+  if (route.query.character === keyword) {
+    await runSearch(keyword)
+  } else {
+    await router.replace({ query: { character: keyword } })
+  }
 }
 
 const searchPopularCharacter = async (characterName: string) => {
@@ -76,8 +99,14 @@ const searchPopularCharacter = async (characterName: string) => {
   <v-main>
     <v-container class="page-shell">
       <header class="page-heading">
-        <h1>캐릭터 검색</h1>
-        <p>캐릭터의 기본 정보와 성장 현황을 확인하세요.</p>
+        <h1>{{ hasQuery ? '캐릭터 검색' : '오늘의 아크라시아' }}</h1>
+        <p>
+          {{
+            hasQuery
+              ? '캐릭터의 기본 정보와 성장 현황을 확인하세요.'
+              : '공식 소식을 확인하고, 나의 캐릭터로 모험을 이어가세요.'
+          }}
+        </p>
       </header>
       <form class="search-form" @submit.prevent="handleSearch">
         <v-text-field
@@ -98,7 +127,17 @@ const searchPopularCharacter = async (characterName: string) => {
           >검색</v-btn
         >
       </form>
-      <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-6">{{
+      <div v-if="recent.names.length" class="recent-searches" aria-label="최근 검색">
+        <span>최근 검색</span>
+        <button v-for="name in recent.names" :key="name" @click="searchPopularCharacter(name)">
+          {{ name }}
+        </button>
+      </div>
+      <p v-if="recent.storageMessage" class="storage-note" role="status">
+        {{ recent.storageMessage }}
+      </p>
+      <HomeNews v-if="!hasQuery" />
+      <v-alert v-if="hasQuery && errorMessage" type="error" variant="tonal" class="mb-6">{{
         errorMessage
       }}</v-alert>
       <v-alert
@@ -109,8 +148,8 @@ const searchPopularCharacter = async (characterName: string) => {
         role="status"
         >{{ favorites.storageMessage }}</v-alert
       >
-      <div class="search-layout">
-        <section aria-label="검색 결과" :aria-busy="isSearching">
+      <div class="search-layout" :class="{ 'home-layout': !hasQuery }">
+        <section v-if="hasQuery" aria-label="검색 결과" :aria-busy="isSearching">
           <div class="section-heading result-heading">
             <h2>검색 결과</h2>
             <span>기본 프로필</span>
@@ -169,7 +208,7 @@ const searchPopularCharacter = async (characterName: string) => {
           <section aria-label="누적 검색 순위">
             <div class="section-heading">
               <h2>누적 검색 순위</h2>
-              <span>TOP 10</span>
+              <span>{{ hasQuery ? 'TOP 10' : 'TOP 5' }}</span>
             </div>
             <p v-if="rankingError" class="empty-note">
               순위를 불러오지 못했습니다.
@@ -179,7 +218,10 @@ const searchPopularCharacter = async (characterName: string) => {
               아직 집계된 검색이 없습니다.
             </p>
             <ol v-else class="ranking-list">
-              <li v-for="(character, index) in popularCharacters" :key="character.characterName">
+              <li
+                v-for="(character, index) in popularCharacters.slice(0, hasQuery ? 10 : 5)"
+                :key="character.characterName"
+              >
                 <button @click="searchPopularCharacter(character.characterName)">
                   <span class="rank" :class="{ 'top-rank': index < 3 }">{{
                     String(index + 1).padStart(2, '0')
@@ -191,6 +233,7 @@ const searchPopularCharacter = async (characterName: string) => {
             </ol>
             <p class="ranking-note">전체 누적 검색 횟수 기준입니다.</p>
           </section>
+          <HomeFortune v-if="!hasQuery" />
         </aside>
       </div>
     </v-container>
@@ -202,7 +245,39 @@ const searchPopularCharacter = async (characterName: string) => {
   display: flex;
   gap: 12px;
   max-width: 760px;
-  margin-bottom: 40px;
+  margin-bottom: 16px;
+}
+.recent-searches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+  margin-bottom: 28px;
+  font-size: 12px;
+}
+.recent-searches > span,
+.storage-note {
+  color: var(--muted);
+  font-size: 11px;
+}
+.recent-searches button {
+  color: var(--text);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.storage-note {
+  margin: 12px 0;
+}
+.home-layout {
+  display: block !important;
+}
+.home-layout .sidebar {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+}
+.home-layout .sidebar > section {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
 }
 .search-button {
   height: 48px;
@@ -310,6 +385,9 @@ const searchPopularCharacter = async (characterName: string) => {
   color: var(--text);
 }
 @media (max-width: 960px) {
+  .home-layout .sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .search-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;
@@ -320,6 +398,9 @@ const searchPopularCharacter = async (characterName: string) => {
   }
 }
 @media (max-width: 600px) {
+  .home-layout .sidebar {
+    grid-template-columns: 1fr;
+  }
   .search-form {
     gap: 8px;
     margin-bottom: 28px;

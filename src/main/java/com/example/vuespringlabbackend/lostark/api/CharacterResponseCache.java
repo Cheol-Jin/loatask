@@ -13,20 +13,18 @@ import java.util.function.Supplier;
 
 /** 프로세스 내 개수 제한 캐시. 시간 비교는 시스템 시각 변경에 영향받지 않습니다. */
 final class CharacterResponseCache<T> {
-    private static final long FRESH = Duration.ofSeconds(60).toNanos();
-    private static final long MAX_AGE = Duration.ofMinutes(10).toNanos();
-    private static final long RETRY_DELAY = Duration.ofSeconds(15).toNanos();
 
     private record Entry<T>(T value, long loadedAt, Long failedAt) {
-        boolean usableWithoutRefresh(long now) {
+        boolean usableWithoutRefresh(long now, long freshNanos, long maxAgeNanos, long retryNanos) {
             long age = now - loadedAt;
-            return age < FRESH || (age < MAX_AGE && failedAt != null && now - failedAt < RETRY_DELAY);
+            return age < freshNanos || (age < maxAgeNanos && failedAt != null && now - failedAt < retryNanos);
         }
     }
 
     private record Result<T>(T value, boolean stale) {}
     private final CharacterApiMetrics metrics;
     private final CharacterApiMetrics.Kind kind;
+    private final long freshNanos, maxAgeNanos, retryNanos;
     private final int capacity;
     private final LongSupplier ticker;
     private final Map<String, Entry<T>> entries = new LinkedHashMap<>(16, 0.75f, true);
@@ -37,6 +35,14 @@ final class CharacterResponseCache<T> {
     }
 
     CharacterResponseCache(int capacity, LongSupplier ticker, CharacterApiMetrics metrics, CharacterApiMetrics.Kind kind) {
+        this(capacity, ticker, metrics, kind, Duration.ofSeconds(60), Duration.ofMinutes(10), Duration.ofSeconds(15));
+    }
+
+    CharacterResponseCache(int capacity, LongSupplier ticker, CharacterApiMetrics metrics, CharacterApiMetrics.Kind kind,
+                           Duration fresh, Duration maxAge, Duration retry) {
+        this.freshNanos = fresh.toNanos();
+        this.maxAgeNanos = maxAge.toNanos();
+        this.retryNanos = retry.toNanos();
         this.metrics = metrics;
         this.kind = kind;
         this.capacity = capacity;
@@ -56,12 +62,12 @@ final class CharacterResponseCache<T> {
     }
 
     private Result<T> reused(Entry<T> entry) {
-        return new Result<>(entry.value(), ticker.getAsLong() - entry.loadedAt() >= FRESH);
+        return new Result<>(entry.value(), ticker.getAsLong() - entry.loadedAt() >= freshNanos);
     }
 
     private Result<T> resolve(String name, Supplier<T> loader) {
         Entry<T> entry = lookup(name);
-        if (entry != null && entry.usableWithoutRefresh(ticker.getAsLong())) {
+        if (entry != null && entry.usableWithoutRefresh(ticker.getAsLong(), freshNanos, maxAgeNanos, retryNanos)) {
             metrics.hit(kind);
             return reused(entry);
         }
@@ -95,14 +101,14 @@ final class CharacterResponseCache<T> {
     private Result<T> refresh(String name, Supplier<T> loader) {
         // 앞선 요청이 최초 조회와 병합 등록 사이에 갱신했을 수 있습니다.
         Entry<T> previous = lookup(name);
-        if (previous != null && previous.usableWithoutRefresh(ticker.getAsLong())) return reused(previous);
+        if (previous != null && previous.usableWithoutRefresh(ticker.getAsLong(), freshNanos, maxAgeNanos, retryNanos)) return reused(previous);
         try {
             T value = loader.get();
             save(name, new Entry<>(value, ticker.getAsLong(), null));
             return new Result<>(value, false);
         } catch (CharacterProfileException failure) {
             long now = ticker.getAsLong();
-            if (failure.isRetryable() && previous != null && now - previous.loadedAt() < MAX_AGE) {
+            if (failure.isRetryable() && previous != null && now - previous.loadedAt() < maxAgeNanos) {
                 save(name, new Entry<>(previous.value(), previous.loadedAt(), now));
                 return reused(previous);
             }
@@ -116,7 +122,7 @@ final class CharacterResponseCache<T> {
     private Entry<T> lookup(String name) {
         synchronized (entries) {
             Entry<T> entry = entries.get(name);
-            if (entry != null && ticker.getAsLong() - entry.loadedAt() >= MAX_AGE) {
+            if (entry != null && ticker.getAsLong() - entry.loadedAt() >= maxAgeNanos) {
                 entries.remove(name);
                 return null;
             }

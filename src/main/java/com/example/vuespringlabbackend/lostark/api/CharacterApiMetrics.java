@@ -8,7 +8,7 @@ import java.util.Locale;
 /** 요청 이름을 태그로 쓰지 않고 종류별 고정 크기 집계만 보관합니다. */
 @Component
 public class CharacterApiMetrics {
-    public enum Kind { PROFILE, ARMORY, ROSTER }
+    public enum Kind { PROFILE, ARMORY, ROSTER, NOTICE, EVENT }
     public enum UpstreamResult { SUCCESS, RATE_LIMITED, SERVER_ERROR, HTTP_ERROR, CONNECTION_ERROR, INVALID_RESPONSE }
 
     private final Instant startedAt = Instant.now();

@@ -99,3 +99,14 @@ export const getCharacterRoster = async (characterName: string): Promise<LostArk
   }
   return response.data
 }
+
+export const getHomeNotices = async (): Promise<import('@/utils/homeNews').HomeNotice[]> => {
+  const response = await lostarkApi.get('/home/notices')
+  if (!Array.isArray(response.data)) throw new Error('Invalid notices')
+  return response.data
+}
+export const getHomeEvents = async (): Promise<import('@/utils/homeNews').HomeEvent[]> => {
+  const response = await lostarkApi.get('/home/events')
+  if (!Array.isArray(response.data)) throw new Error('Invalid events')
+  return response.data
+}

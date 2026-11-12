@@ -1,6 +1,6 @@
 # 작업 진행 기록
 
-마지막 갱신: 2026-11-12 (한국 시간)
+마지막 갱신: 2026-11-13 (한국 시간)
 
 ## 작업 원칙
 
@@ -160,3 +160,14 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 제한: 브라우저 로컬 저장 기준. 계정·여러 기기·저장소 삭제·시계 조작을 막는 서버 제한은 아님. Web Locks 미지원 브라우저의 동시 탭 추첨은 엄격한 원자성을 보장하지 않음.
 - 백엔드 변경 없음. 운영 DB·실제 API 호출 없이 검증.
 - 다음: 배포 완료 후 운세 페이지 새로고침으로 확인. 계정 단위 제한이 필요해지면 로그인과 서버 저장을 설계.
+
+## 2026-11-13: 정보형 홈 화면
+
+- 시작: 원본 main, 사용자 변경 두 건 보존. 추가 크레딧 0, 기본 사용 가능(5시간 31% / 주간 12%).
+- 완료: 검색 전 홈, 공식 공지/이벤트 10분 캐시, 최근 검색 5개, 즐겨찾기/누적 순위/운세 바로가기. 기존 검색 URL 유지.
+- backend: LostArkNewsResponse.java, LostArkNewsClient.java, LostArkHomeController.java 신규. CharacterResponseCache.java는 소식 전용 캐시 정책 지정 지원, 캐릭터 정책은 기존 유지. CharacterApiMetrics.java NOTICE/EVENT 추가.
+- frontend: HomeNews.vue/HomeFortune.vue/homeNews.ts/recentSearchStore.ts 신규. CharacterListView.vue, characterStore.ts, lostarkApi.ts 수정.
+- 검증: 백엔드 빌드·테스트 60개, 프론트 타입 검사·빌드·테스트 39개 통과. 소식 캐시/장애, KST 일정, 공식 링크, 최근 검색 테스트 추가.
+- 로컬 모의 UI: 공지 오류 후 독립 재시도, 이벤트 유지, 검색 주소, 홈 복귀와 최근 검색 확인. 두 번 검색에 프로필 API 두 번 호출. 콘솔 오류 없음.
+- 문서: docs/home-page.md 신규 및 README/지표 문서 갱신. 실제 배포 서버의 소식 표시는 아직 미검증.
+- 다음: 배포 완료 후 기존 사이트 주소에서 실제 공지·이벤트 표시를 확인합니다. 운영 DB/비밀 설정 변경 없음.
