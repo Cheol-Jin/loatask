@@ -4,6 +4,7 @@ import type {
   LostArkProfile,
   CharacterSearchRanking,
   LostArkArmory,
+  LostArkSibling,
 } from '@/types/lostark'
 
 const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.trim()
@@ -81,6 +82,20 @@ export const getCharacterArmory = async (characterName: string): Promise<LostArk
   )
   if (!response.data?.profile?.characterName?.trim()) {
     throw new CharacterProfileError('캐릭터를 찾을 수 없습니다. 캐릭터명을 확인해 주세요.')
+  }
+  return response.data
+}
+
+export const getCharacterRoster = async (characterName: string): Promise<LostArkSibling[]> => {
+  const name = characterName.trim()
+  if (!name) throw new CharacterProfileError('캐릭터명을 입력해 주세요.')
+  const response = await lostarkApi.get<LostArkSibling[]>(
+    `/official/characters/${encodeURIComponent(name)}/roster`,
+  )
+  if (!Array.isArray(response.data)) {
+    throw new CharacterProfileError(
+      '원정대 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    )
   }
   return response.data
 }

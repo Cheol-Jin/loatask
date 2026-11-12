@@ -2,6 +2,8 @@ package com.example.vuespringlabbackend.lostark.api;
 
 import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
 import com.example.vuespringlabbackend.lostark.dto.LostArkArmoryResponse;
+import com.example.vuespringlabbackend.lostark.dto.LostArkSiblingResponse;
+import java.util.List;
 import com.example.vuespringlabbackend.lostark.exception.CharacterProfileException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,6 +23,7 @@ public class LostArkOpenApiClient {
     private final LongSupplier ticker;
     private final CharacterResponseCache<LostArkProfileResponse> profiles;
     private final CharacterResponseCache<LostArkArmoryResponse> armories;
+    private final CharacterResponseCache<List<LostArkSiblingResponse>> rosters;
 
     public LostArkOpenApiClient(RestClient lostArkRestClient) {
         this(lostArkRestClient, System::nanoTime);
@@ -41,6 +44,7 @@ public class LostArkOpenApiClient {
         this.ticker = ticker;
         this.profiles = new CharacterResponseCache<>(256, ticker, metrics, CharacterApiMetrics.Kind.PROFILE);
         this.armories = new CharacterResponseCache<>(64, ticker, metrics, CharacterApiMetrics.Kind.ARMORY);
+        this.rosters = new CharacterResponseCache<>(128, ticker, metrics, CharacterApiMetrics.Kind.ROSTER);
     }
 
     public LostArkProfileResponse getCharacterProfile(String characterName) {
@@ -68,6 +72,12 @@ public class LostArkOpenApiClient {
         return armory;
     }
 
+    public List<LostArkSiblingResponse> getCharacterRoster(String characterName) {
+        String name = normalize(characterName);
+        return rosters.get(name, () -> List.of(fetch(
+                "/characters/{characterName}/siblings", name, LostArkSiblingResponse[].class)));
+    }
+
     private void requireProfile(LostArkProfileResponse profile) {
         if (profile == null || profile.characterName() == null || profile.characterName().isBlank()) {
             throw notFound();
@@ -83,14 +93,25 @@ public class LostArkOpenApiClient {
 
     private <T> T fetch(String path, String characterName, Class<T> type, String... filters) {
         long start = ticker.getAsLong();
-        var kind = type == LostArkArmoryResponse.class ? CharacterApiMetrics.Kind.ARMORY : CharacterApiMetrics.Kind.PROFILE;
+        var kind = type == LostArkSiblingResponse[].class ? CharacterApiMetrics.Kind.ROSTER
+                : type == LostArkArmoryResponse.class ? CharacterApiMetrics.Kind.ARMORY : CharacterApiMetrics.Kind.PROFILE;
         var outcome = CharacterApiMetrics.UpstreamResult.INVALID_RESPONSE;
         try {
             Object[] variables = filters.length == 0
                     ? new Object[]{characterName} : new Object[]{characterName, filters[0]};
             T result = lostArkRestClient.get().uri(path, variables).retrieve().body(type);
-            requireProfile(result instanceof LostArkArmoryResponse armory ? armory.profile()
-                    : result instanceof LostArkProfileResponse profile ? profile : null);
+            if (type == LostArkSiblingResponse[].class) {
+                if (result == null) throw notFound();
+                for (var sibling : (LostArkSiblingResponse[]) result) {
+                    if (sibling == null || sibling.characterName() == null || sibling.characterName().isBlank()
+                            || sibling.serverName() == null || sibling.serverName().isBlank()) {
+                        throw unavailable(false);
+                    }
+                }
+            } else {
+                requireProfile(result instanceof LostArkArmoryResponse armory ? armory.profile()
+                        : result instanceof LostArkProfileResponse profile ? profile : null);
+            }
             outcome = CharacterApiMetrics.UpstreamResult.SUCCESS;
             return result;
         } catch (RestClientResponseException e) {

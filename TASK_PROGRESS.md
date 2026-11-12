@@ -1,6 +1,6 @@
 # 작업 진행 기록
 
-마지막 갱신: 2026-11-06 (한국 시간)
+마지막 갱신: 2026-11-12 (한국 시간)
 
 ## 작업 원칙
 
@@ -86,7 +86,7 @@
 ## 미구현 범위 (기존 상세 작업의 오류가 아닌 후속 기능)
 
 - 로아와와 동일한 전체 서비스, 자체 딜 계산·캐릭터 성능 순위.
-- 아크 그리드, 아바타·수집품 상세, 원정대 다른 캐릭터 목록.
+- 아크 그리드, 아바타·수집품 상세. 원정대 캐릭터 목록은 2026-11-12 구현 완료.
 - 커뮤니티 게시판, 챗봇, 운세 고민 AI 해석, 주간 숙제 체크.
 - 기존 요청은 장비 등 상세정보 표시였으며 위 후속 기능을 이번 재개에서 추가하지 않습니다.
 
@@ -137,3 +137,15 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 검증: 백엔드 빌드 성공 및 테스트 41개 통과. H2와 모의 API 사용, 운영 DB 테스트/장애 주입 없음. 프론트 소스 변경 없어 해당 빌드 생략.
 - 비교: 모의 40ms 지연으로 같은/서로 다른 캐릭터 각 20회 조회. 적중 19/0회, 외부 호출 1/20회, 조회 평균 3.063/47.947ms. 실제 운영 측정 수치가 아님.
 - 다음: docs/character-api-metrics.md에 따라 배포 후 같은 인스턴스의 로그 구간을 비교합니다. 운영 로그에서 실제 트래픽 측정은 아직 수행하지 않았습니다. 서버 재시작 시 카운터가 초기화되고 공개 지표 API는 없습니다.
+
+## 2026-11-12: 원정대 캐릭터 목록
+
+- 시작: 원본 main, 사용자 변경 두 건 보존. 추가 크레딧 0, 기본 사용 가능(5시간 0% / 주간 7%).
+- 완료: 공식 siblings API, 목록 전용 캐시/지표, 상세 화면의 서버 선택·레벨순 목록·상세 이동.
+- backend: LostArkSiblingResponse.java, LostArkOpenApiClient.java, LostArkController.java, CharacterApiMetrics.java, CharacterRosterTests.java.
+- frontend: CharacterRoster.vue, CharacterDetailView.vue, CharacterArmory.vue, lostarkApi.ts, lostark.ts, utils/roster.ts, tests/roster.test.mjs.
+- 검증: 백엔드 빌드 및 테스트 53개, 프론트 타입 검사·빌드 및 테스트 17개 통과.
+- 로컬 모의 데이터 UI: 같은 서버 기본 선택, 전체 서버, 다른 캐릭터 이동/현재 표시 갱신, 목록 실패에도 프로필 유지, 목록만 재시도 및 빈 목록 안내 확인.
+- 실제 배포 서버의 원정대 데이터 호출은 아직 미검증. 운영 DB/비밀 설정 변경 없음.
+- 문서: README, docs/character-roster.md, 캐시/운영 지표 문서 갱신.
+- 다음: 배포가 완료되면 실제 캐릭터 상세 화면에서 원정대 목록을 확인합니다. 원정대 대시보드의 숙제 집계는 후속 기능입니다.

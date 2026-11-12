@@ -85,3 +85,11 @@ export interface CharacterSearchRanking {
   characterName: string
   searchCount: number
 }
+
+export interface LostArkSibling {
+  serverName: string
+  characterName: string
+  characterLevel: number | null
+  characterClassName: string | null
+  itemAvgLevel: string | null
+}

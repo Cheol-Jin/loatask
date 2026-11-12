@@ -8,11 +8,12 @@ import java.util.Locale;
 /** 요청 이름을 태그로 쓰지 않고 종류별 고정 크기 집계만 보관합니다. */
 @Component
 public class CharacterApiMetrics {
-    public enum Kind { PROFILE, ARMORY }
+    public enum Kind { PROFILE, ARMORY, ROSTER }
     public enum UpstreamResult { SUCCESS, RATE_LIMITED, SERVER_ERROR, HTTP_ERROR, CONNECTION_ERROR, INVALID_RESPONSE }
 
     private final Instant startedAt = Instant.now();
-    private final Counters[] counters = {new Counters(), new Counters()};
+    private final Counters[] counters = java.util.Arrays.stream(Kind.values())
+            .map(kind -> new Counters()).toArray(Counters[]::new);
 
     private static final class Counters {
         long requests, completed, hits, misses, joined, stale, failures;

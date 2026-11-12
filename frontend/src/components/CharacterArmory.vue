@@ -13,6 +13,7 @@ const cardEffects = computed(
 )
 const activeSkills = computed(() => props.armory.skills.filter((skill) => skill.level > 1))
 const navigation = [
+  ['roster', '원정대'],
   ['combat', '전투 특성'],
   ['equipment', '장비'],
   ['engravings', '각인'],
@@ -160,7 +161,9 @@ const navigation = [
         <h2 id="skill-title">스킬 · 트라이포드</h2>
         <span>Lv.2 이상 {{ activeSkills.length }}개</span>
       </header>
-      <p class="section-note">포인트를 투자한 스킬입니다. 누르면 선택된 트라이포드와 상세 설명이 펼쳐집니다.</p>
+      <p class="section-note">
+        포인트를 투자한 스킬입니다. 누르면 선택된 트라이포드와 상세 설명이 펼쳐집니다.
+      </p>
       <details v-for="(skill, index) in activeSkills" :key="index" class="skill-row">
         <summary>
           <img

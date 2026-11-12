@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import CharacterProfile from '@/components/CharacterProfile.vue'
 import CharacterArmory from '@/components/CharacterArmory.vue'
+import CharacterRoster from '@/components/CharacterRoster.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
 import { useFavoriteStore } from '@/stores/favoriteStore'
 import { useRoute } from 'vue-router'
@@ -63,6 +64,10 @@ watch(() => route.params.name, loadCharacter, { immediate: true })
         <CharacterProfile :profile="armory.profile" detail>
           <FavoriteButton :character-name="armory.profile.characterName" />
         </CharacterProfile>
+        <CharacterRoster
+          :character-name="armory.profile.characterName"
+          :server-name="armory.profile.serverName"
+        />
         <CharacterArmory :armory="armory" />
       </template>
     </v-container>

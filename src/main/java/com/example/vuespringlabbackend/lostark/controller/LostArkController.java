@@ -7,6 +7,7 @@ import com.example.vuespringlabbackend.lostark.service.LostArkCharacterService;
 import com.example.vuespringlabbackend.lostark.api.LostArkOpenApiClient;
 import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
 import com.example.vuespringlabbackend.lostark.dto.LostArkArmoryResponse;
+import com.example.vuespringlabbackend.lostark.dto.LostArkSiblingResponse;
 import com.example.vuespringlabbackend.lostark.search.service.CharacterSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -83,6 +84,12 @@ public class LostArkController {
         LostArkArmoryResponse armory = lostArkOpenApiClient.getCharacterArmory(characterName);
         characterSearchService.recordSearch(armory.profile().characterName());
         return armory;
+    }
+
+    // 목록을 여는 것만으로 개별 캐릭터 검색 횟수를 증가시키지 않습니다.
+    @GetMapping("/official/characters/{characterName}/roster")
+    public List<LostArkSiblingResponse> getOfficialCharacterRoster(@PathVariable String characterName) {
+        return lostArkOpenApiClient.getCharacterRoster(characterName);
     }
 
     @PostMapping("/characters/import")
