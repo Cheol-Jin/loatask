@@ -1,32 +1,83 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
-import { fortuneTopics, shuffleFortuneCards, type FortuneTopic } from '@/data/fortune'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { fortuneCards, fortuneTopics, shuffleFortuneCards, type FortuneTopic } from '@/data/fortune'
+import { useFortuneStore } from '@/stores/fortuneStore'
+import FortuneArtwork from '@/components/FortuneArtwork.vue'
 
+const usage = useFortuneStore()
 const topic = ref<FortuneTopic>('adventure')
 const deck = ref(shuffleFortuneCards())
-const selectedIndex = ref<number | null>(null)
+const choosingAgain = ref(false)
+const drawing = ref(false)
 const resultHeading = ref<HTMLElement | null>(null)
 const firstCard = ref<HTMLButtonElement | null>(null)
 const selectedCard = computed(() =>
-  selectedIndex.value === null ? null : deck.value[selectedIndex.value],
+  choosingAgain.value
+    ? null
+    : (fortuneCards.find((card) => card.id === usage.lastCardId(topic.value)) ?? null),
 )
 const currentTopic = computed(() => fortuneTopics.find((item) => item.id === topic.value)!)
+const remaining = computed(() => usage.remaining(topic.value))
+const blocked = computed(() => remaining.value === 0 || !!usage.storageMessage || drawing.value)
 
-function resetDeck() {
-  selectedIndex.value = null
-  deck.value = shuffleFortuneCards()
+function resetForTopic() {
+  choosingAgain.value = false
+  const last = fortuneCards.find((card) => card.id === usage.lastCardId(topic.value))
+  const shuffled = shuffleFortuneCards(Math.random, usage.history(topic.value))
+  deck.value = last ? [last, ...shuffled] : shuffled
 }
-watch(topic, resetDeck)
+watch([topic, () => usage.record.day], resetForTopic)
+resetForTopic()
+
+function syncUsage() {
+  const before = usage.lastCardId(topic.value)
+  const day = usage.record.day
+  usage.sync()
+  if (day !== usage.record.day || before !== usage.lastCardId(topic.value)) resetForTopic()
+}
+function onStorage(event: StorageEvent) {
+  if (event.key === null || event.key === 'loatask.fortune.v1') syncUsage()
+}
+function onVisibility() {
+  if (document.visibilityState === 'visible') syncUsage()
+}
+let timer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  syncUsage()
+  timer = setInterval(syncUsage, 30_000)
+  window.addEventListener('focus', syncUsage)
+  window.addEventListener('storage', onStorage)
+  document.addEventListener('visibilitychange', onVisibility)
+})
+onBeforeUnmount(() => {
+  clearInterval(timer)
+  window.removeEventListener('focus', syncUsage)
+  window.removeEventListener('storage', onStorage)
+  document.removeEventListener('visibilitychange', onVisibility)
+})
 
 async function drawCard(index: number) {
-  if (selectedIndex.value !== null) return
-  selectedIndex.value = index
-  await nextTick()
-  resultHeading.value?.focus({ preventScroll: true })
+  const card = deck.value[index]
+  if (selectedCard.value || blocked.value || !card) return
+  drawing.value = true
+  try {
+    if (!(await usage.consume(topic.value, card.id))) {
+      resetForTopic()
+      return
+    }
+    choosingAgain.value = false
+    await nextTick()
+    resultHeading.value?.focus({ preventScroll: true })
+  } finally {
+    drawing.value = false
+  }
 }
 
 async function drawAgain() {
-  resetDeck()
+  syncUsage()
+  if (blocked.value) return
+  choosingAgain.value = true
+  deck.value = shuffleFortuneCards(Math.random, usage.history(topic.value))
   await nextTick()
   firstCard.value?.focus({ preventScroll: true })
 }
@@ -49,9 +100,18 @@ async function drawAgain() {
         </label>
       </fieldset>
 
+      <p class="usage-note" role="status">
+        {{ currentTopic.label }} · 오늘 {{ 2 - remaining }}/2회 사용 · 남은 기회 {{ remaining }}회
+        <span>항목별 하루 2회 · 한국 시간 자정 초기화</span>
+      </p>
+      <v-alert v-if="usage.storageMessage" type="warning" variant="tonal" class="mb-6">
+        {{ usage.storageMessage }}
+        <v-btn variant="text" @click="syncUsage">기록 다시 확인</v-btn>
+      </v-alert>
+
       <section class="draw-area" aria-label="운세 카드 뽑기">
         <p class="draw-instruction">
-          {{ selectedCard ? '당신이 고른 카드입니다.' : currentTopic.description }}
+          {{ selectedCard ? '오늘 고른 카드를 다시 볼 수 있습니다.' : currentTopic.description }}
         </p>
         <div class="card-spread">
           <button
@@ -64,30 +124,35 @@ async function drawAgain() {
             "
             class="fortune-card"
             :class="{
-              revealed: selectedIndex === index,
-              unselected: selectedIndex !== null && selectedIndex !== index,
+              revealed: selectedCard?.id === card.id,
+              unselected: selectedCard !== null && selectedCard.id !== card.id,
             }"
-            :disabled="selectedIndex !== null"
+            :disabled="selectedCard !== null || blocked"
             :aria-label="
-              selectedIndex === index ? `뽑은 카드: ${card.name}` : `${index + 1}번째 카드 뽑기`
+              selectedCard?.id === card.id
+                ? `뽑은 카드: ${card.name}`
+                : `${index + 1}번째 카드 뽑기`
             "
             @click="drawCard(index)"
           >
-            <span v-if="selectedIndex !== index" class="card-face card-back">
+            <span v-if="selectedCard?.id !== card.id" class="card-face card-back">
               <span class="card-corner">YOM</span>
-              <span class="card-emblem" aria-hidden="true">✧</span>
+              <FortuneArtwork back class="card-artwork" />
               <span class="card-caption">오늘의 한 장</span>
               <span class="card-number">0{{ index + 1 }}</span>
             </span>
             <span v-else class="card-face card-front">
               <span class="card-corner">{{ card.keyword }}</span>
-              <v-icon :icon="card.icon" class="card-symbol" aria-hidden="true" />
+              <FortuneArtwork :card-id="card.id" class="card-artwork" />
               <span class="card-name">{{ card.name }}</span>
               <span class="card-caption">욤의 오늘의 운세</span>
             </span>
           </button>
         </div>
-        <p class="draw-note">12장의 창작 카드 중 섞인 세 장에서 하나를 골라 주세요.</p>
+        <p class="draw-note">
+          {{ fortuneCards.length }}장의 창작 카드 중 세 장에서 하나를 골라 주세요. 다시 뽑기에서는
+          첫 카드를 제외합니다.
+        </p>
       </section>
 
       <section v-if="selectedCard" class="reading" aria-label="카드 해석">
@@ -97,7 +162,17 @@ async function drawAgain() {
         </div>
         <blockquote>{{ selectedCard.message }}</blockquote>
         <p class="reading-text">{{ selectedCard.readings[topic] }}</p>
-        <v-btn variant="outlined" color="primary" @click="drawAgain">다시 섞고 뽑기</v-btn>
+        <v-btn
+          v-if="remaining > 0"
+          :disabled="drawing || !!usage.storageMessage"
+          variant="outlined"
+          color="primary"
+          @click="drawAgain"
+          >다시 뽑기 · 마지막 1회</v-btn
+        >
+        <p v-else class="limit-message" role="status">
+          이 항목은 오늘 2회 모두 사용했습니다. 한국 시간 자정 이후 다시 뽑을 수 있습니다.
+        </p>
       </section>
 
       <section class="concern-section" aria-labelledby="concern-title">
@@ -119,8 +194,10 @@ async function drawAgain() {
         </p>
       </section>
       <p class="fortune-disclaimer">
-        재미로 보는 창작 운세입니다. 실제 강화·드롭 확률이나 게임 결과를 예측하지 않습니다.<br />결과는
-        저장되지 않으며, 새로고침하거나 주제를 바꾸면 다시 뽑을 수 있습니다.
+        재미로 보는 창작 운세입니다. 실제 강화·드롭 확률이나 게임 결과를 예측하지 않습니다.<br />사용
+        횟수와 마지막 결과는 이 브라우저에 저장됩니다. 항목마다 하루 2회까지 이용할 수 있습니다.<br />
+        다른 기기·브라우저와 공유되지 않으며, 저장 데이터를 삭제하면 기록이 사라집니다. 그림은
+        씨앗과 모험을 주제로 직접 그린 창작 일러스트입니다.
       </p>
     </v-container>
   </v-main>
@@ -178,6 +255,23 @@ async function drawAgain() {
 .topic-picker input {
   accent-color: var(--accent);
 }
+.usage-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--accent);
+  margin: -8px 0 24px;
+}
+.usage-note span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.limit-message {
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.8;
+}
 .draw-area {
   padding: 28px 0;
   border-top: 1px solid var(--line);
@@ -227,17 +321,6 @@ async function drawAgain() {
   font-size: 10px;
   letter-spacing: 2px;
 }
-.card-emblem {
-  display: grid;
-  place-items: center;
-  width: 90px;
-  height: 90px;
-  border: 1px solid #61543e;
-  transform: rotate(45deg);
-  font-size: 76px;
-  margin: 32px 0;
-  line-height: 1;
-}
 .card-caption {
   font-size: 11px;
   letter-spacing: 1px;
@@ -247,9 +330,12 @@ async function drawAgain() {
   margin-top: 16px;
   color: #9f927a;
 }
-.card-symbol {
-  font-size: 64px;
-  margin: 32px 0;
+.card-artwork {
+  display: block;
+  width: 100%;
+  max-width: 168px;
+  margin: 12px 0;
+  flex: 0 1 auto;
 }
 .card-name {
   font-size: 20px;
@@ -349,15 +435,8 @@ async function drawAgain() {
   .card-face {
     padding: 6px 2px;
   }
-  .card-emblem {
-    width: 36px;
-    height: 36px;
-    font-size: 34px;
-    margin: 22px 0;
-  }
-  .card-symbol {
-    font-size: 32px;
-    margin: 18px 0;
+  .card-artwork {
+    margin: 8px 0;
   }
   .card-corner {
     font-size: 9px;
