@@ -65,3 +65,32 @@ export function newsDate(value: string): string {
     day: '2-digit',
   }).format(time)
 }
+
+// 저장된 JSON도 외부 입력이므로 사용 전에 필드와 배열 크기를 검사합니다.
+function records(value: unknown): value is Record<string, unknown>[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 500 &&
+    value.every((item) => item !== null && typeof item === 'object')
+  )
+}
+export function validNotices(value: unknown): value is HomeNotice[] {
+  return (
+    records(value) &&
+    value.every((item) =>
+      ['title', 'date', 'link', 'type'].every((key) => typeof item[key] === 'string'),
+    )
+  )
+}
+export function validEvents(value: unknown): value is HomeEvent[] {
+  return (
+    records(value) &&
+    value.every(
+      (item) =>
+        ['title', 'thumbnail', 'link', 'startDate', 'endDate'].every(
+          (key) => typeof item[key] === 'string',
+        ) &&
+        (item.rewardDate === null || typeof item.rewardDate === 'string'),
+    )
+  )
+}

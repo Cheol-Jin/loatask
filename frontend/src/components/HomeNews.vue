@@ -1,60 +1,46 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { getHomeNotices, getHomeEvents } from '@/api/lostarkApi'
+import { noticeResource, eventResource } from '@/stores/homeNewsResources'
 import {
   latestNotices,
   ongoingEvents,
   officialLink,
   officialThumbnail,
   newsDate,
-  type HomeNotice,
-  type HomeEvent,
 } from '@/utils/homeNews'
-const notices = ref<HomeNotice[]>([])
-const events = ref<HomeEvent[]>([])
-const noticesLoading = ref(true)
-const eventsLoading = ref(true)
-const noticesError = ref(false)
-const eventsError = ref(false)
+const {
+  data: notices,
+  hasData: hasNotices,
+  loading: noticesLoading,
+  error: noticesError,
+} = noticeResource
+const {
+  data: events,
+  hasData: hasEvents,
+  loading: eventsLoading,
+  error: eventsError,
+} = eventResource
 const now = ref(Date.now())
+const slow = ref(false)
 const visibleNotices = computed(() => latestNotices(notices.value))
 const visibleEvents = computed(() => ongoingEvents(events.value, now.value))
-let alive = true
-let timer: ReturnType<typeof setInterval> | undefined
-async function loadNotices() {
-  noticesLoading.value = true
-  noticesError.value = false
-  try {
-    const data = await getHomeNotices()
-    if (alive) notices.value = data
-  } catch {
-    if (alive) noticesError.value = true
-  } finally {
-    if (alive) noticesLoading.value = false
-  }
-}
-async function loadEvents() {
-  eventsLoading.value = true
-  eventsError.value = false
-  try {
-    const data = await getHomeEvents()
-    if (alive) events.value = data
-  } catch {
-    if (alive) eventsError.value = true
-  } finally {
-    if (alive) eventsLoading.value = false
-  }
-}
+const loadNotices = () => noticeResource.load(true)
+const loadEvents = () => eventResource.load(true)
+let clock: ReturnType<typeof setInterval> | undefined
+let slowTimer: ReturnType<typeof setTimeout> | undefined
 onMounted(() => {
-  void loadNotices()
-  void loadEvents()
-  timer = setInterval(() => {
+  void noticeResource.load()
+  void eventResource.load()
+  slowTimer = setTimeout(() => {
+    slow.value = true
+  }, 8_000)
+  clock = setInterval(() => {
     now.value = Date.now()
   }, 30_000)
 })
 onBeforeUnmount(() => {
-  alive = false
-  clearInterval(timer)
+  clearInterval(clock)
+  clearTimeout(slowTimer)
 })
 </script>
 
@@ -70,9 +56,16 @@ onBeforeUnmount(() => {
           >전체 공지 ↗</a
         >
       </header>
-      <p v-if="noticesLoading" class="status" role="status">공식 공지를 불러오는 중입니다.</p>
-      <p v-else-if="noticesError" class="status" role="alert">
-        공지를 불러오지 못했습니다. <button @click="loadNotices">다시 시도</button>
+      <p v-if="!hasNotices && noticesLoading" class="status" role="status">
+        {{
+          slow
+            ? '서버 응답을 기다리고 있습니다. 처음 접속하면 약 1분 걸릴 수 있습니다. 위 전체 공지에서 먼저 확인하실 수 있습니다.'
+            : '공식 공지를 불러오는 중입니다.'
+        }}
+      </p>
+      <p v-else-if="!hasNotices && noticesError" class="status" role="alert">
+        공지를 불러오지 못했습니다. 잠시 후 다시 시도하거나 위 공식 페이지에서 확인해 주세요.
+        <button :disabled="noticesLoading" @click="loadNotices">다시 시도</button>
       </p>
       <ul v-else-if="visibleNotices.length" class="notices">
         <li v-for="notice in visibleNotices" :key="notice.link">
@@ -84,6 +77,13 @@ onBeforeUnmount(() => {
         </li>
       </ul>
       <p v-else class="status">표시할 공지가 없습니다. 전체 공지에서 확인해 주세요.</p>
+      <p v-if="hasNotices && noticesLoading" class="refresh-note" role="status">
+        저장된 공지입니다. 최신 소식을 확인하고 있습니다.
+      </p>
+      <p v-else-if="hasNotices && noticesError" class="refresh-note" role="status">
+        최신 공지를 확인하지 못해 이전 내용을 표시합니다.
+        <button @click="loadNotices">다시 시도</button>
+      </p>
     </section>
     <section aria-labelledby="events-title">
       <header>
@@ -95,9 +95,16 @@ onBeforeUnmount(() => {
           >전체 이벤트 ↗</a
         >
       </header>
-      <p v-if="eventsLoading" class="status" role="status">이벤트를 불러오는 중입니다.</p>
-      <p v-else-if="eventsError" class="status" role="alert">
-        이벤트를 불러오지 못했습니다. <button @click="loadEvents">다시 시도</button>
+      <p v-if="!hasEvents && eventsLoading" class="status" role="status">
+        {{
+          slow
+            ? '서버 응답을 기다리고 있습니다. 위 전체 이벤트에서 먼저 확인하실 수 있습니다.'
+            : '이벤트를 불러오는 중입니다.'
+        }}
+      </p>
+      <p v-else-if="!hasEvents && eventsError" class="status" role="alert">
+        이벤트를 불러오지 못했습니다. 잠시 후 다시 시도하거나 위 공식 페이지에서 확인해 주세요.
+        <button :disabled="eventsLoading" @click="loadEvents">다시 시도</button>
       </p>
       <ul v-else-if="visibleEvents.length" class="events">
         <li v-for="event in visibleEvents" :key="event.link">
@@ -119,6 +126,13 @@ onBeforeUnmount(() => {
         </li>
       </ul>
       <p v-else class="status">표시할 진행 중인 이벤트가 없습니다.</p>
+      <p v-if="hasEvents && eventsLoading" class="refresh-note" role="status">
+        저장된 이벤트입니다. 최신 소식을 확인하고 있습니다.
+      </p>
+      <p v-else-if="hasEvents && eventsError" class="refresh-note" role="status">
+        최신 이벤트를 확인하지 못해 이전 내용을 표시합니다.
+        <button @click="loadEvents">다시 시도</button>
+      </p>
     </section>
   </div>
   <p class="news-note">
@@ -222,6 +236,12 @@ time {
 button {
   text-decoration: underline;
   color: var(--text);
+}
+.refresh-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 12px;
 }
 .news-note {
   color: var(--muted);

@@ -49,3 +49,25 @@ test('공식 HTTPS 링크만 노출한다', () => {
     [],
   )
 })
+
+test('브라우저 저장값의 필수 필드와 배열 크기를 검사한다', async () => {
+  const { validNotices, validEvents } = await import(
+    `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
+  )
+  const notice = { title: '공지', date: '2026-11-16T10:00:00', link, type: '공지' }
+  const event = {
+    title: '이벤트',
+    thumbnail: '',
+    link,
+    startDate: '',
+    endDate: '',
+    rewardDate: null,
+  }
+  assert.equal(validNotices([notice]), true)
+  assert.equal(validEvents([event]), true)
+  assert.equal(validNotices([{ ...notice, date: null }]), false)
+  assert.equal(validEvents([{ ...event, thumbnail: null }]), false)
+  assert.equal(validNotices([null]), false)
+  assert.equal(validNotices(Array(501).fill(notice)), false)
+  assert.equal(validEvents({}), false)
+})
