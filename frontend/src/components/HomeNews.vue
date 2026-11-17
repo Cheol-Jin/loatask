@@ -59,7 +59,7 @@ onBeforeUnmount(() => {
       <p v-if="!hasNotices && noticesLoading" class="status" role="status">
         {{
           slow
-            ? '서버 응답을 기다리고 있습니다. 처음 접속하면 약 1분 걸릴 수 있습니다. 위 전체 공지에서 먼저 확인하실 수 있습니다.'
+            ? '공식 소식의 응답이 늦어지고 있습니다. 위 전체 공지에서 먼저 확인하실 수 있습니다.'
             : '공식 공지를 불러오는 중입니다.'
         }}
       </p>
@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
       <p v-if="!hasEvents && eventsLoading" class="status" role="status">
         {{
           slow
-            ? '서버 응답을 기다리고 있습니다. 위 전체 이벤트에서 먼저 확인하실 수 있습니다.'
+            ? '공식 이벤트의 응답이 늦어지고 있습니다. 위 전체 이벤트에서 먼저 확인하실 수 있습니다.'
             : '이벤트를 불러오는 중입니다.'
         }}
       </p>

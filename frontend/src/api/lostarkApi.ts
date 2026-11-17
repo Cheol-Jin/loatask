@@ -100,14 +100,19 @@ export const getCharacterRoster = async (characterName: string): Promise<LostArk
   return response.data
 }
 
-// 무료 서버의 첫 기동을 기다리되 소식 조회는 영역별로 한 번만 재시도합니다.
+// 배포 화면의 공개 소식은 Render 기동과 분리합니다. 키는 Vercel 함수에서만 사용합니다.
+const homeNewsApi = axios.create({ baseURL: '/api/home', timeout: 8_000 })
 export const getHomeNotices = async (): Promise<import('@/utils/homeNews').HomeNotice[]> => {
-  const response = await lostarkApi.get('/home/notices', { timeout: 65_000 })
+  const response = import.meta.env.PROD
+    ? await homeNewsApi.get('/notices')
+    : await lostarkApi.get('/home/notices', { timeout: 20_000 })
   if (!Array.isArray(response.data)) throw new Error('Invalid notices')
   return response.data
 }
 export const getHomeEvents = async (): Promise<import('@/utils/homeNews').HomeEvent[]> => {
-  const response = await lostarkApi.get('/home/events', { timeout: 65_000 })
+  const response = import.meta.env.PROD
+    ? await homeNewsApi.get('/events')
+    : await lostarkApi.get('/home/events', { timeout: 20_000 })
   if (!Array.isArray(response.data)) throw new Error('Invalid events')
   return response.data
 }
