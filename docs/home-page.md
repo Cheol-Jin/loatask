@@ -14,7 +14,7 @@
 3. `utils/homeNews.ts`: 공지 최신 5개, 이벤트 종료 가까운 순 최대 2개, KST 일정 처리와 공식 HTTPS 링크 검증.
 4. `recentSearchStore.ts`: localStorage의 `loatask.recent-searches.v1`에 성공 검색 이름을 저장합니다. 저장 실패는 검색 성공 자체를 막지 않습니다.
 5. `HomeFortune.vue`: 기존 씨앗 그림과 Pinia 운세 기록으로 남은 기회를 보여줍니다. 클릭 전에는 추첨 횟수를 소비하지 않습니다.
-6. `LostArkHomeController`: GET /api/lostark/home/notices, GET /api/lostark/home/events 제공.
+6. `LostArkHomeController`: 로컬 개발과 기존 Java API용 GET /api/lostark/home/notices, GET /api/lostark/home/events 제공.
 7. `LostArkNewsClient`: 공식 /news/notices와 /news/events를 서버의 기존 API 키로 조회합니다. 키를 브라우저에 전달하지 않습니다.
 8. `CharacterResponseCache`: 기존 캐릭터 캐시 기본 정책은 유지하고, 소식 캐시만 정책을 별도로 지정합니다.
 
@@ -47,3 +47,14 @@
 - 실제 수정 전 공개 API 측정: 공지·이벤트 각각 55초 내 응답 없음. 이후 공지 HTTP 200 약 0.194초, 이벤트 HTTP 200 약 0.768초. 이는 서버 준비 전후 관찰이며 이번 코드의 개선 전후 성능 수치가 아닙니다. 서버 로그를 확보하지 않아 최초 지연의 근본 원인은 미확정입니다.
 
 - 최종 검증: 프론트 테스트 50개·타입 검사·빌드 통과. 모의 브라우저의 캐시 복원/갱신 실패 유지/자동 복구 확인. Vercel 실제 배포 후 별도 브라우저에서 공지 62개·이벤트 9개 수신과 새로고침 시 소식 API 0회, 공지 표시 및 페이지 오류 0 확인.
+
+
+## 2026-11-17 첫 방문의 Render 기동 대기 제거
+
+배포 프론트의 공지·이벤트는 같은 출처 `/api/home/notices`, `/api/home/events`를 사용합니다. `frontend/api/home/[kind].ts`의 Vercel 서버 함수가 공식 API를 직접 조회합니다. 로컬 `npm run dev`는 기존 Java API를 계속 사용합니다. 캐릭터 조회·누적 검색 순위는 기존 Render API를 유지합니다.
+
+- Vercel Production의 Secret `LOSTARK_API_KEY`가 필요합니다. VITE_ 접두사를 붙이지 않으며 프론트 번들·Git·응답에 키를 넣지 않습니다.
+- 성공 응답만 공용 CDN에 600초 캐시하고 이후 최대 3000초 동안 기존 응답 제공 및 뒤에서 갱신하도록 설정했습니다. 오류 응답은 no-store입니다. 기존 브라우저 캐시도 유지합니다.
+- 공식 API 요청 5초, 소식 프론트 요청 8초 제한입니다. GET과 고정된 공지·이벤트 경로만 허용하며, 외부 오류 본문은 전달하지 않습니다. 완전 첫 CDN 요청은 함수 시작/공식 API 응답 시간을 필요로 하므로 즉시 표시를 보장하지 않습니다.
+- 함수 테스트 7개 추가, 전체 프론트 57개 및 타입 검사·빌드 통과. 로컬 프로덕션 모의 UI에서 Java 소식 호출 없이 빈 저장소의 공지·이벤트 표시와 /fortune 직접 접속 확인.
+- 실제 배포: 저장 기록 없는 브라우저 2개에서 공지 63개·이벤트 9개 수신. 페이지 진입부터 두 목록 표시까지 첫 CDN MISS 2.608초, 다른 새 브라우저 CDN HIT 0.569초. 두 경우 모두 Java 소식 요청·페이지 오류 0. 단발 실사용 관찰이며 통계적 성능 보장이나 동일 환경의 전후 벤치마크는 아닙니다.

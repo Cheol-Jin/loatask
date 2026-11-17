@@ -198,6 +198,7 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 구현: frontend/api/home/[kind].ts 신규. Vercel 서버의 LOSTARK_API_KEY로 공식 /news/notices·events 직접 조회. 성공 응답만 공용 CDN 10분 캐시와 백그라운드 갱신, 오류 no-store, 공식 API 5초 제한, 키/오류 원문 비노출, 고정 경로·GET만 허용.
 - 프론트: 배포 모드는 같은 출처 /api/home/*, 로컬 dev는 기존 Java 소식 API 유지. 캐릭터 조회는 기존 서버 사용. 브라우저 캐시/재시도는 유지. vercel.json API와 SPA 라우팅 구분, tsconfig.node.json 서버 함수 타입 검사 포함.
 - 검증: 함수 단위 테스트 7개 추가, 전체 프론트 57개 및 타입 검사·빌드 통과. 운영 환경의 실제 응답 시간과 CDN 적중은 아직 미검증.
-- 필요한 설정: Vercel Production에 Secret LOSTARK_API_KEY 등록을 사용자에게 요청. 키는 대화나 Git에 넣지 않음. 등록 확인 전 운영 사이트를 새 API로 전환하는 push는 보류.
+- 설정 완료: 사용자가 Vercel Production Secret LOSTARK_API_KEY 등록을 확인. 값은 조회·출력·Git 저장하지 않음. 19fd1f4 main push 및 Vercel 성공 확인.
 - 로컬 프로덕션 UI 검증: 빈 브라우저 첫 접속에서 공지·이벤트 표시, Java 소식 요청 0회, 새로고침 추가 소식 요청 0회, /fortune 직접 접속 및 페이지 오류 0 확인(모의 공식 API).
-- 다음: 이번 파일만 로컬 커밋으로 보관. 환경변수 등록 확인 후 push → 실제 /api/home/* JSON·캐시·빈 브라우저 첫 접속 시간 확인. 실제 Vercel 함수 실행·CDN 적중·속도는 아직 미검증.
+- 실제 배포 검증: /api/home/notices HTTP 200 JSON 확인. 저장 기록 없는 별도 브라우저 2개에서 공지 63개/이벤트 9개 수신 및 화면 표시. 첫 방문 CDN MISS 약 2.608초, 다른 새 브라우저 CDN HIT 약 0.569초(페이지 진입부터 두 목록 표시까지, 각 1회 관찰). Java 소식 요청 0회·페이지 오류 0. 최초 확인용 API 호출은 약 1.284초. 대규모 부하·반복 통계·CDN 만료 후 재검증은 미수행.
+- 다음: 캐릭터 검색/누적 순위는 기존 Render 서버 기동의 영향을 계속 받음. 이번 변경은 공지·이벤트 분리이며 전체 사이트 속도 보장은 아님.
