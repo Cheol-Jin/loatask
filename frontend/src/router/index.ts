@@ -10,6 +10,12 @@ const router = createRouter({
 
   routes: [
     {
+      path: '/tarot',
+      name: 'tarot',
+      meta: { title: '네리아의 고민 상담실' },
+      component: () => import('@/views/TarotView.vue'),
+    },
+    {
       path: '/fortune',
       name: 'fortune',
       component: () => import('@/views/FortuneView.vue'),

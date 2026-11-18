@@ -41,6 +41,7 @@ onBeforeUnmount(() => {
       }}
     </p>
     <RouterLink class="fortune-link" to="/fortune">운세 보러 가기 →</RouterLink>
+    <RouterLink class="fortune-link tarot-link" to="/tarot">네리아의 고민 상담실 →</RouterLink>
   </section>
 </template>
 <style scoped>
@@ -71,6 +72,9 @@ p {
   font-size: 13px;
   text-align: center;
   text-decoration: none;
+}
+.tarot-link {
+  margin-top: 10px;
 }
 .fortune-link:hover {
   border-color: var(--accent);

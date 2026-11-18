@@ -212,3 +212,14 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 검증: H2 운영 스키마 검증·4시간 전 DB 응답 새 캐시 복원·HTTP stale 헤더/원본 시각·24시간 경계·404/인증/형식 오류·DB 장애 처리 검증. 백엔드 70개/빌드, 프론트 60개/타입 검사/빌드 통과. 모의 점검 UI에서 공지·이벤트 및 프로필·상세·원정대 안내, 시각 유지, 페이지 오류 0 확인. 운영 DB 테스트·SQL 수동 실행 안 함.
 - 배포: 0b51eb2 main push, Vercel 성공 및 Render Live 확인. MySQL 연결·JPA 스키마 검증 완료, 읽기 전용 상태 API 200과 새 메타데이터 CORS 노출 확인. 실제 캐릭터 조회/DB 스냅샷 적재 검증은 운영 데이터 변경을 피하려고 수행하지 않음. 실제 점검 중 소식 함수는 502 관찰(저장본 없는 새 CDN 캐시는 대체 불가).
 - 마무리: 동일한 CORS 노출 설정 중복 호출 정리. 다음은 점검 종료 후 사용자의 정상 조회로 저장본을 쌓는 것. 무료 Render의 최초 기동 대기와 DB 자체 중단은 이번 기능으로 해결되지 않음.
+
+
+## 2026-11-19: 네리아의 고민 상담실
+
+- 시작: 원본 main. 기존 변경 6파일(index.html, App.vue, router/index.ts, CharacterListView.vue, CommunityView.vue, HomeView.vue 삭제) 보존. App/router는 이번 메뉴/경로 추가만 선별 커밋 예정. 기본 사용 가능(5시간 사용 1%, 주간 사용 14%, 추가 크레딧 0).
+- modern web guidance: 설치 스킬 먼저 읽고 search/retrieve 실행. forms/accessibility/card/motion 지침 전문 확인. 네이티브 select/label, 결과 포커스, 48px 타깃, 카드 article/container query, 동작 줄이기 opt-in 적용. 향후 작업을 위한 AGENTS.md 추가.
+- 1단계 저장: tarot.ts에 78장(22+56), 정·역방향 창작 해석, 24주제, 6배열(1/3/3/4/5/10장), 덱/검증/위치별 해석. tarotStore.ts는 최근 한 건 저장, 실패 시 화면 결과 유지, 욤 기록과 독립.
+- 2단계 저장: TarotView.vue/TarotArtwork.vue, /tarot 경로, 네리아 메뉴 및 홈 운세 영역 링크. 자유 고민 입력/AI/외부 API 없음. 기존 운세는 기존 정책 유지.
+- 검증: 프론트 69개 테스트와 타입 검사·빌드 통과. 브라우저에서 3장 키보드 선택/단계별 포커스, 새로고침 복원, 390px 모바일 열 장 자동 선택·가로 넘침 없음, 한 장 완료, 콘솔 오류 없음 확인. reduced-motion은 기본 정적 + no-preference에서만 애니메이션 적용했으며 실제 OS 설정 전환은 미검증.
+- 기존 변경 보존: App/router에서 이번 추가만 제거한 내용이 작업 시작 백업과 정확히 일치함을 확인. 이번 추가만 index에 구성하고 실제 커밋 대상 별도 빌드 예정.
+- 다음: 선별한 커밋 대상 검증 후 main 커밋·push 및 /tarot 실제 배포 확인. 백엔드/운영 DB 변경 없음.

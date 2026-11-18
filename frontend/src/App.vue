@@ -14,6 +14,7 @@ const route = useRoute()
             :class="{ active: route.path === '/' || route.name === 'characterDetail' }"
             >캐릭터 검색</RouterLink
           >
+          <RouterLink to="/tarot" active-class="active">네리아의 타로</RouterLink>
           <RouterLink to="/fortune" active-class="active">욤의 운세</RouterLink>
           <RouterLink to="/community" active-class="active">커뮤니티</RouterLink>
           <RouterLink to="/chatbot" active-class="active">챗봇</RouterLink>
