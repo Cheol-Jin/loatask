@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, useId } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import TarotArtwork from '@/components/TarotArtwork.vue'
+import TarotChoiceArtwork from '@/components/TarotChoiceArtwork.vue'
 import {
   createTarotDeck,
   readTarotCard,
@@ -154,41 +155,94 @@ async function restore() {
           </div>
         </div>
         <form action="/tarot" method="get" @submit.prevent="start">
-          <div class="setup-grid">
-            <div class="field">
-              <label :for="`${uid}-topic`">상담 주제</label>
-              <select
-                :id="`${uid}-topic`"
-                v-model="topicId"
-                name="topic"
-                :aria-describedby="`${uid}-topic-help`"
-              >
-                <optgroup v-for="group in tarotGroups" :key="group.id" :label="group.label">
-                  <option
-                    v-for="item in tarotTopics.filter((candidate) => candidate.group === group.id)"
-                    :key="item.id"
+          <nav class="choice-jumps" aria-label="상담 선택 영역">
+            <a :href="`#${uid}-topics`">01 상담 주제 24가지</a>
+            <a :href="`#${uid}-spreads`">02 읽는 방법 6가지</a>
+          </nav>
+          <fieldset
+            :id="`${uid}-topics`"
+            class="choice-fieldset topic-picker"
+            :aria-describedby="`${uid}-topic-help`"
+          >
+            <legend>상담 주제 · 마음에 닿는 카드 한 장</legend>
+            <p :id="`${uid}-topic-help`" class="choice-help">
+              24개의 이야기 중 하나를 골라 주세요. 카드를 눌러 선택하고, 다른 카드로 언제든 바꿀 수
+              있습니다.
+            </p>
+            <div
+              v-for="group in tarotGroups"
+              :key="group.id"
+              class="topic-group"
+              :class="`group-${group.id}`"
+            >
+              <h3>{{ group.label }}</h3>
+              <div class="topic-choice-grid">
+                <label
+                  v-for="item in tarotTopics.filter((candidate) => candidate.group === group.id)"
+                  :key="item.id"
+                  class="choice-card topic-choice"
+                  :for="`${uid}-topic-${item.id}`"
+                >
+                  <input
+                    :id="`${uid}-topic-${item.id}`"
+                    v-model="topicId"
+                    type="radio"
+                    name="topic"
                     :value="item.id"
-                  >
-                    {{ item.label }}
-                  </option>
-                </optgroup>
-              </select>
-              <p :id="`${uid}-topic-help`" class="field-help">{{ topic.angle }}</p>
+                    :aria-labelledby="`${uid}-topic-name-${item.id}`"
+                    :aria-describedby="`${uid}-topic-note-${item.id}`"
+                  />
+                  <TarotChoiceArtwork kind="topic" :choice-id="item.id" />
+                  <span :id="`${uid}-topic-name-${item.id}`" class="choice-name">{{
+                    item.label
+                  }}</span>
+                  <span :id="`${uid}-topic-note-${item.id}`" class="choice-description">{{
+                    item.angle
+                  }}</span>
+                </label>
+              </div>
             </div>
-            <div class="field">
-              <label :for="`${uid}-spread`">카드를 읽는 방법</label>
-              <select
-                :id="`${uid}-spread`"
-                v-model="spreadId"
-                name="spread"
-                :aria-describedby="`${uid}-spread-help`"
+          </fieldset>
+          <fieldset
+            :id="`${uid}-spreads`"
+            class="choice-fieldset spread-picker"
+            :aria-describedby="`${uid}-spread-help`"
+          >
+            <legend>카드를 읽는 방법 · 펼쳐진 모양을 골라 주세요</legend>
+            <p :id="`${uid}-spread-help`" class="choice-help">
+              숫자는 카드를 읽는 순서입니다. 짧은 한 장부터 열 장의 이야기까지, 오늘의 마음에 맞게
+              선택해 주세요.
+            </p>
+            <div class="spread-choice-grid">
+              <label
+                v-for="item in tarotSpreads"
+                :key="item.id"
+                class="choice-card spread-choice"
+                :for="`${uid}-spread-${item.id}`"
               >
-                <option v-for="item in tarotSpreads" :key="item.id" :value="item.id">
-                  {{ item.label }} · {{ item.positions.length }}장
-                </option>
-              </select>
-              <p :id="`${uid}-spread-help`" class="field-help">{{ spread.description }}</p>
+                <input
+                  :id="`${uid}-spread-${item.id}`"
+                  v-model="spreadId"
+                  type="radio"
+                  name="spread"
+                  :value="item.id"
+                  :aria-labelledby="`${uid}-spread-name-${item.id}`"
+                  :aria-describedby="`${uid}-spread-note-${item.id}`"
+                />
+                <TarotChoiceArtwork kind="spread" :choice-id="item.id" />
+                <span :id="`${uid}-spread-name-${item.id}`" class="choice-name"
+                  >{{ item.label }} · {{ item.positions.length }}장</span
+                >
+                <span :id="`${uid}-spread-note-${item.id}`" class="choice-description">{{
+                  item.description
+                }}</span>
+              </label>
             </div>
+          </fieldset>
+          <div class="selected-consultation">
+            <span>고른 이야기</span><strong>{{ topic.label }}</strong
+            ><span aria-hidden="true">/</span
+            ><strong>{{ spread.label }} · {{ spread.positions.length }}장</strong>
           </div>
           <ol class="position-preview">
             <li v-for="(position, index) in spread.positions" :key="position">
@@ -205,22 +259,6 @@ async function restore() {
             </button>
           </div>
         </form>
-        <details class="topic-directory">
-          <summary>24가지 상담 주제 살펴보기</summary>
-          <div class="directory-grid">
-            <div v-for="group in tarotGroups" :key="group.id">
-              <h3>{{ group.label }}</h3>
-              <p>
-                {{
-                  tarotTopics
-                    .filter((item) => item.group === group.id)
-                    .map((item) => item.label)
-                    .join(' · ')
-                }}
-              </p>
-            </div>
-          </div>
-        </details>
       </section>
 
       <section v-else-if="stage === 'draw'" class="draw-section">
@@ -439,34 +477,6 @@ h2 {
   margin-block-start: 8px;
   line-height: 1.8;
 }
-.setup-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
-}
-.field label {
-  display: block;
-  font-size: 0.8125rem;
-  margin-block-end: 8px;
-}
-.field select {
-  width: 100%;
-  min-block-size: 52px;
-  border: 1px solid #777;
-  padding: 12px;
-  background: #191719;
-  color: var(--text);
-  font: inherit;
-  font-size: 1rem;
-  color-scheme: dark;
-}
-.field-help {
-  margin-block-start: 10px;
-  font-size: 0.8125rem;
-  color: var(--muted);
-  line-height: 1.8;
-  min-block-size: 3rem;
-}
 .position-preview {
   display: flex;
   flex-wrap: wrap;
@@ -510,33 +520,6 @@ h2 {
   color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 5px;
-}
-.topic-directory {
-  border-block-start: 1px solid var(--line);
-  padding-block: 20px;
-}
-.topic-directory summary {
-  min-block-size: 48px;
-  cursor: pointer;
-  padding-block: 12px;
-  font-size: 0.8125rem;
-}
-.directory-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  padding-block: 20px;
-}
-.directory-grid h3 {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--salon-accent);
-  margin-block-end: 8px;
-}
-.directory-grid p {
-  font-size: 0.75rem;
-  color: var(--muted);
-  line-height: 1.9;
 }
 .draw-grid {
   display: grid;
@@ -724,22 +707,12 @@ h2[tabindex] {
     white-space: normal;
     font-size: 0.5625rem;
   }
-  .setup-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .field-help {
-    min-block-size: 0;
-  }
   .reading-grid {
     grid-template-columns: 1fr;
   }
   .draw-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-  }
-  .directory-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .salon-note {
     gap: 10px 16px;
@@ -757,9 +730,6 @@ h2[tabindex] {
   }
   .salon-sign {
     display: none;
-  }
-  .directory-grid {
-    grid-template-columns: 1fr;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -783,6 +753,185 @@ h2[tabindex] {
       opacity: 1;
       transform: none;
     }
+  }
+}
+
+.choice-jumps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  border-block-end: 1px solid var(--line);
+  margin-block-end: 28px;
+}
+.choice-jumps a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  font-size: 0.8125rem;
+  color: var(--salon-accent);
+}
+.choice-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+  scroll-margin-block-start: 90px;
+}
+.choice-fieldset legend {
+  padding: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.choice-help {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  margin-block: 10px 24px;
+}
+.topic-group {
+  --scene-color: #c7baa0;
+  margin-block-end: 28px;
+}
+.group-love {
+  --scene-color: #d4a7b9;
+}
+.group-people {
+  --scene-color: #d0b699;
+}
+.group-work {
+  --scene-color: #b7bfd8;
+}
+.group-change {
+  --scene-color: #b7c6b0;
+}
+.group-self {
+  --scene-color: #c1b1cf;
+}
+.group-game {
+  --scene-color: #a7c6c3;
+}
+.topic-group h3 {
+  color: var(--scene-color);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-block-end: 12px;
+}
+.topic-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.choice-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-inline-size: 0;
+  padding: 14px 14px 18px;
+  border: 1px solid #675862;
+  background: #1c171c;
+  cursor: pointer;
+  container-type: inline-size;
+}
+.choice-card > input {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  accent-color: var(--salon-accent);
+}
+.choice-card > svg {
+  inline-size: 100%;
+  block-size: 160px;
+  color: var(--scene-color, var(--salon-accent));
+  margin-block: 4px 12px;
+}
+.choice-name {
+  display: block;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+.choice-description {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-block-start: 6px;
+}
+.choice-card:has(> input:checked) {
+  border-color: var(--salon-accent);
+  background: #2a2225;
+  box-shadow: inset 0 0 0 1px var(--salon-accent);
+}
+.choice-card:has(> input:focus-visible) {
+  outline: 2px solid var(--salon-accent);
+  outline-offset: 4px;
+}
+.choice-card:hover {
+  border-color: var(--salon-accent);
+}
+.spread-picker {
+  border-block-start: 1px solid var(--line);
+  padding-block-start: 24px;
+  margin-block: 36px 28px;
+}
+.spread-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.spread-choice > svg {
+  block-size: 180px;
+}
+.selected-consultation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+  padding-block: 16px 0;
+  font-size: 0.8125rem;
+}
+.selected-consultation > span {
+  color: var(--muted);
+}
+.selected-consultation strong {
+  font-weight: 500;
+  color: var(--salon-accent);
+}
+@container (min-width: 15rem) {
+  .choice-name {
+    font-size: 1rem;
+  }
+}
+@media (max-width: 700px) {
+  .topic-choice-grid,
+  .spread-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .choice-card {
+    padding: 12px 12px 16px;
+  }
+  .choice-card > svg {
+    block-size: 140px;
+  }
+  .choice-fieldset legend {
+    font-size: 1rem;
+  }
+  .choice-name {
+    font-size: 0.875rem;
+  }
+  .choice-description {
+    font-size: 0.75rem;
+  }
+}
+@media (max-width: 360px) {
+  .spread-choice-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

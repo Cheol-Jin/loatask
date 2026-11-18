@@ -99,3 +99,32 @@ test('방향·위치·상담 주제가 각각 해석에 반영된다', () => {
   assert.notEqual(first.reflection, readTarotCard({ ...reading, topicId: 'raid' }, 0).reflection)
   assert.throws(() => readTarotCard(reading, 99))
 })
+
+const artSource = await readFile(new URL('../src/data/tarotChoiceArt.ts', import.meta.url), 'utf8')
+const artCompiled = ts.transpileModule(artSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText
+const { topicScenes, spreadLayouts } = await import(
+  `data:text/javascript;base64,${Buffer.from(artCompiled).toString('base64')}`
+)
+test('모든 상담 주제에는 서로 다른 삽화가 있으며 배열 그림은 실제 뽑는 장수와 일치한다', () => {
+  assert.deepEqual(Object.keys(topicScenes).sort(), tarotTopics.map((item) => item.id).sort())
+  assert.equal(
+    new Set(Object.values(topicScenes).map((paths) => paths.join(' '))).size,
+    tarotTopics.length,
+  )
+  for (const topic of tarotTopics) {
+    assert.ok(topicScenes[topic.id].length > 0)
+    for (const path of topicScenes[topic.id]) assert.match(path, /^M/)
+  }
+  assert.deepEqual(Object.keys(spreadLayouts).sort(), tarotSpreads.map((item) => item.id).sort())
+  for (const spread of tarotSpreads) {
+    assert.equal(spreadLayouts[spread.id].length, spread.positions.length)
+    for (const card of spreadLayouts[spread.id]) {
+      const halfWidth = card.rotate ? 18 : 12
+      const halfHeight = card.rotate ? 12 : 18
+      assert.ok(card.x - halfWidth >= 8 && card.x + halfWidth <= 172)
+      assert.ok(card.y - halfHeight >= 7 && card.y + halfHeight <= 183)
+    }
+  }
+})
