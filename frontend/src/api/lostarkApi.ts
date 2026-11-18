@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { readDataSource, type DataSource } from '@/utils/dataSource'
 import type {
   LostArkCharacter,
   LostArkProfile,
@@ -66,7 +67,7 @@ export const getCharacterProfile = async (characterName: string): Promise<LostAr
   if (!response.data?.characterName?.trim()) {
     throw new CharacterProfileError('캐릭터를 찾을 수 없습니다. 캐릭터명을 확인해 주세요.')
   }
-  return response.data
+  return { ...response.data, source: readDataSource(response.headers) }
 }
 
 export const getSearchRankings = async (): Promise<CharacterSearchRanking[]> => {
@@ -83,10 +84,15 @@ export const getCharacterArmory = async (characterName: string): Promise<LostArk
   if (!response.data?.profile?.characterName?.trim()) {
     throw new CharacterProfileError('캐릭터를 찾을 수 없습니다. 캐릭터명을 확인해 주세요.')
   }
-  return response.data
+  return {
+    ...response.data,
+    profile: { ...response.data.profile, source: readDataSource(response.headers) },
+  }
 }
 
-export const getCharacterRoster = async (characterName: string): Promise<LostArkSibling[]> => {
+export const getCharacterRoster = async (
+  characterName: string,
+): Promise<LostArkSibling[] & { source?: DataSource }> => {
   const name = characterName.trim()
   if (!name) throw new CharacterProfileError('캐릭터명을 입력해 주세요.')
   const response = await lostarkApi.get<LostArkSibling[]>(
@@ -97,22 +103,34 @@ export const getCharacterRoster = async (characterName: string): Promise<LostArk
       '원정대 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
     )
   }
-  return response.data
+  return Object.assign(response.data, { source: readDataSource(response.headers) })
 }
 
 // 배포 화면의 공개 소식은 Render 기동과 분리합니다. 키는 Vercel 함수에서만 사용합니다.
 const homeNewsApi = axios.create({ baseURL: '/api/home', timeout: 8_000 })
-export const getHomeNotices = async (): Promise<import('@/utils/homeNews').HomeNotice[]> => {
+export const getHomeNotices = async (): Promise<{
+  data: import('@/utils/homeNews').HomeNotice[]
+  updatedAt: number
+}> => {
   const response = import.meta.env.PROD
     ? await homeNewsApi.get('/notices')
     : await lostarkApi.get('/home/notices', { timeout: 20_000 })
   if (!Array.isArray(response.data)) throw new Error('Invalid notices')
-  return response.data
+  return {
+    data: response.data,
+    updatedAt: Date.parse(readDataSource(response.headers)?.updatedAt ?? new Date().toISOString()),
+  }
 }
-export const getHomeEvents = async (): Promise<import('@/utils/homeNews').HomeEvent[]> => {
+export const getHomeEvents = async (): Promise<{
+  data: import('@/utils/homeNews').HomeEvent[]
+  updatedAt: number
+}> => {
   const response = import.meta.env.PROD
     ? await homeNewsApi.get('/events')
     : await lostarkApi.get('/home/events', { timeout: 20_000 })
   if (!Array.isArray(response.data)) throw new Error('Invalid events')
-  return response.data
+  return {
+    data: response.data,
+    updatedAt: Date.parse(readDataSource(response.headers)?.updatedAt ?? new Date().toISOString()),
+  }
 }

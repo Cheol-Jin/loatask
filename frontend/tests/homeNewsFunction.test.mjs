@@ -40,8 +40,9 @@ test('키는 서버에서만 보내고 고정된 공식 경로로 공지를 조�
   const response = await handler(req())
   assert.equal(calls, 1)
   assert.equal(response.status, 200)
+  assert.ok(Number.isFinite(Date.parse(response.headers.get('X-Lostark-Updated-At'))))
   assert.match(response.headers.get('Vercel-CDN-Cache-Control'), /s-maxage=600/)
-  assert.match(response.headers.get('Vercel-CDN-Cache-Control'), /stale-while-revalidate=3000/)
+  assert.match(response.headers.get('Vercel-CDN-Cache-Control'), /stale-while-revalidate=85800/)
   assert.deepEqual(await response.json(), [
     { title: notice.Title, link: notice.Link, date: notice.Date, type: notice.Type },
   ])

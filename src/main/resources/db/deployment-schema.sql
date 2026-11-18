@@ -14,3 +14,11 @@ CREATE TABLE IF NOT EXISTS character_search (
     search_count BIGINT NOT NULL,
     updated_at DATETIME(6) NOT NULL
 );
+
+
+CREATE TABLE IF NOT EXISTS character_snapshot (
+    snapshot_key VARCHAR(300) NOT NULL PRIMARY KEY,
+    payload LONGTEXT NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    INDEX idx_snapshot_updated_at (updated_at)
+);

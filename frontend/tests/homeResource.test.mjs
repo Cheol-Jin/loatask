@@ -137,8 +137,8 @@ test('중복 로딩과 수동 재시도는 한 요청을 공유한다', async ()
   await Promise.all([first, second])
   assert.deepEqual(s.resource.data.value, ['one'])
 })
-test('한 시간 경계·미래 시각·손상 캐시는 사용하지 않는다', async () => {
-  for (const value of [cache(60 * 60_000), cache(-1), cache(1, [null]), '{broken']) {
+test('24시간 경계·미래 시각·손상 캐시는 사용하지 않는다', async () => {
+  for (const value of [cache(24 * 60 * 60_000), cache(-1), cache(1, [null]), '{broken']) {
     const s = setup(
       {
         fetch: async () => {
@@ -162,7 +162,7 @@ test('오래 열린 화면도 홈 재진입 시 만료 데이터를 폐기한다
   })
   await s.resource.load()
   fail = true
-  s.setTime(s.time + 60 * 60_000)
+  s.setTime(s.time + 24 * 60 * 60_000)
   await s.resource.load()
   assert.equal(s.resource.hasData.value, false)
 })
@@ -188,4 +188,20 @@ test('공지와 이벤트의 실패 및 캐시는 독립적이다', async () => 
   assert.equal(notices.resource.error.value, true)
   assert.equal(events.resource.error.value, false)
   assert.deepEqual(events.resource.data.value, ['new'])
+})
+
+test('공용 캐시를 받아도 원래 확인 시각을 연장하지 않는다', async () => {
+  const original = 10_000_000 - 4 * 60 * 60_000
+  const s = setup({ fetch: async () => ({ data: ['maintenance snapshot'], updatedAt: original }) })
+  await s.resource.load()
+  assert.equal(s.resource.savedAt.value, original)
+  assert.equal(JSON.parse(s.saved.get(key)).savedAt, original)
+})
+test('응답 자체가 24시간을 넘었으면 새로운 성공으로 저장하지 않는다', async () => {
+  const s = setup({
+    fetch: async () => ({ data: ['expired'], updatedAt: 10_000_000 - 24 * 60 * 60_000 }),
+  })
+  await s.resource.load()
+  assert.equal(s.resource.error.value, true)
+  assert.equal(s.resource.hasData.value, false)
 })

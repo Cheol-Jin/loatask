@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import DataSourceNote from '@/components/DataSourceNote.vue'
 import { noticeResource, eventResource } from '@/stores/homeNewsResources'
 import {
   latestNotices,
@@ -24,6 +25,14 @@ const now = ref(Date.now())
 const slow = ref(false)
 const visibleNotices = computed(() => latestNotices(notices.value))
 const visibleEvents = computed(() => ongoingEvents(events.value, now.value))
+const noticeSource = computed(() => ({
+  updatedAt: new Date(noticeResource.savedAt.value).toISOString(),
+  stale: noticesError.value || now.value - noticeResource.savedAt.value >= 600_000,
+}))
+const eventSource = computed(() => ({
+  updatedAt: new Date(eventResource.savedAt.value).toISOString(),
+  stale: eventsError.value || now.value - eventResource.savedAt.value >= 600_000,
+}))
 const loadNotices = () => noticeResource.load(true)
 const loadEvents = () => eventResource.load(true)
 let clock: ReturnType<typeof setInterval> | undefined
@@ -80,7 +89,8 @@ onBeforeUnmount(() => {
       <p v-if="hasNotices && noticesLoading" class="refresh-note" role="status">
         저장된 공지입니다. 최신 소식을 확인하고 있습니다.
       </p>
-      <p v-else-if="hasNotices && noticesError" class="refresh-note" role="status">
+      <DataSourceNote v-if="hasNotices && noticeSource.stale" :source="noticeSource" />
+      <p v-if="hasNotices && noticesError" class="refresh-note" role="status">
         최신 공지를 확인하지 못해 이전 내용을 표시합니다.
         <button @click="loadNotices">다시 시도</button>
       </p>
@@ -129,7 +139,8 @@ onBeforeUnmount(() => {
       <p v-if="hasEvents && eventsLoading" class="refresh-note" role="status">
         저장된 이벤트입니다. 최신 소식을 확인하고 있습니다.
       </p>
-      <p v-else-if="hasEvents && eventsError" class="refresh-note" role="status">
+      <DataSourceNote v-if="hasEvents && eventSource.stale" :source="eventSource" />
+      <p v-if="hasEvents && eventsError" class="refresh-note" role="status">
         최신 이벤트를 확인하지 못해 이전 내용을 표시합니다.
         <button @click="loadEvents">다시 시도</button>
       </p>

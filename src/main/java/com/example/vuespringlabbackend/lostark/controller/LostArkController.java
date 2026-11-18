@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import com.example.vuespringlabbackend.lostark.dto.LostArkCharacterImportRequest;
 import jakarta.validation.Valid;
 
+import org.springframework.http.ResponseEntity;
+import com.example.vuespringlabbackend.lostark.api.CachedResponse;
 import java.util.List;
 import java.util.Map;
 
@@ -66,30 +68,30 @@ public class LostArkController {
     }
 
     @GetMapping("/official/characters/{characterName}/profile")
-    public LostArkProfileResponse getOfficialCharacterProfile(
+    public ResponseEntity<LostArkProfileResponse> getOfficialCharacterProfile(
     		@PathVariable("characterName") String characterName
     ) {
-        LostArkProfileResponse profile =
-            lostArkOpenApiClient.getCharacterProfile(characterName);
-
-        if (profile != null && profile.characterName() != null) {
-            characterSearchService.recordSearch(profile.characterName());
-        }
-
-        return profile;
+        var result = lostArkOpenApiClient.getCharacterProfileResponse(characterName);
+        characterSearchService.recordSearch(result.data().characterName());
+        return sourced(result);
     }
 
     @GetMapping("/official/characters/{characterName}/armory")
-    public LostArkArmoryResponse getOfficialCharacterArmory(@PathVariable String characterName) {
-        LostArkArmoryResponse armory = lostArkOpenApiClient.getCharacterArmory(characterName);
-        characterSearchService.recordSearch(armory.profile().characterName());
-        return armory;
+    public ResponseEntity<LostArkArmoryResponse> getOfficialCharacterArmory(@PathVariable String characterName) {
+        var result = lostArkOpenApiClient.getCharacterArmoryResponse(characterName);
+        characterSearchService.recordSearch(result.data().profile().characterName());
+        return sourced(result);
     }
 
-    // 목록을 여는 것만으로 개별 캐릭터 검색 횟수를 증가시키지 않습니다.
     @GetMapping("/official/characters/{characterName}/roster")
-    public List<LostArkSiblingResponse> getOfficialCharacterRoster(@PathVariable String characterName) {
-        return lostArkOpenApiClient.getCharacterRoster(characterName);
+    public ResponseEntity<List<LostArkSiblingResponse>> getOfficialCharacterRoster(@PathVariable String characterName) {
+        return sourced(lostArkOpenApiClient.getCharacterRosterResponse(characterName));
+    }
+
+    private <T> ResponseEntity<T> sourced(CachedResponse<T> result) {
+        return ResponseEntity.ok().header("Cache-Control", "no-store")
+                .header("X-Lostark-Updated-At", result.updatedAt().toString())
+                .header("X-Lostark-Stale", Boolean.toString(result.stale())).body(result.data());
     }
 
     @PostMapping("/characters/import")

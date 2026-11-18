@@ -19,6 +19,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("Content-Type")
+                .exposedHeaders("X-Lostark-Updated-At", "X-Lostark-Stale")
+                .exposedHeaders("X-Lostark-Updated-At", "X-Lostark-Stale")
+                .exposedHeaders("X-Lostark-Updated-At", "X-Lostark-Stale")
                 .maxAge(3600);
     }
 }

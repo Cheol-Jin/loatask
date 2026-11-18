@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DataSourceNote from '@/components/DataSourceNote.vue'
 import type { LostArkProfile } from '@/types/lostark'
 defineProps<{ profile: LostArkProfile; detail?: boolean }>()
 </script>
@@ -9,6 +10,7 @@ defineProps<{ profile: LostArkProfile; detail?: boolean }>()
       <p>{{ profile.serverName }} <span>/</span> {{ profile.characterClassName }}</p>
       <component :is="detail ? 'h1' : 'h2'">{{ profile.characterName }}</component>
     </header>
+    <DataSourceNote :source="profile.source" />
     <div class="profile-body">
       <div class="portrait">
         <v-img

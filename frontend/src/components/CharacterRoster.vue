@@ -2,10 +2,13 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { getCharacterRoster, getCharacterErrorMessage } from '@/api/lostarkApi'
 import type { LostArkSibling } from '@/types/lostark'
+import DataSourceNote from '@/components/DataSourceNote.vue'
+import type { DataSource } from '@/utils/dataSource'
 import { rosterServers, sortedRoster } from '@/utils/roster'
 
 const props = defineProps<{ characterName: string; serverName: string }>()
 const roster = ref<LostArkSibling[]>([])
+const source = ref<DataSource>()
 const loading = ref(false)
 const errorMessage = ref('')
 const selectedServer = ref(props.serverName)
@@ -16,11 +19,15 @@ let requestId = 0
 async function loadRoster() {
   const current = ++requestId
   roster.value = []
+  source.value = undefined
   loading.value = true
   errorMessage.value = ''
   try {
     const result = await getCharacterRoster(props.characterName)
-    if (current === requestId) roster.value = result
+    if (current === requestId) {
+      roster.value = result
+      source.value = result.source
+    }
   } catch (error) {
     if (current === requestId) errorMessage.value = getCharacterErrorMessage(error)
   } finally {
@@ -60,6 +67,7 @@ onBeforeUnmount(() => {
       <button class="retry" type="button" @click="loadRoster">목록 다시 시도</button>
     </div>
     <template v-else>
+      <DataSourceNote :source="source" />
       <div class="roster-toolbar">
         <label
           >서버

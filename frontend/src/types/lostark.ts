@@ -9,6 +9,7 @@ export interface LostArkCharacter {
 }
 
 export interface LostArkProfile {
+  source?: import('@/utils/dataSource').DataSource
   characterImage: string | null
   expeditionLevel: number | null
   townName: string | null

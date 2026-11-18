@@ -4,6 +4,9 @@ import com.example.vuespringlabbackend.lostark.dto.LostArkProfileResponse;
 import com.example.vuespringlabbackend.lostark.dto.LostArkArmoryResponse;
 import com.example.vuespringlabbackend.lostark.dto.LostArkSiblingResponse;
 import java.util.List;
+import java.time.Duration;
+import java.time.Instant;
+import com.example.vuespringlabbackend.lostark.snapshot.CharacterSnapshotStore;
 import com.example.vuespringlabbackend.lostark.exception.CharacterProfileException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,7 +32,6 @@ public class LostArkOpenApiClient {
         this(lostArkRestClient, System::nanoTime);
     }
 
-    @Autowired
     public LostArkOpenApiClient(RestClient lostArkRestClient, CharacterApiMetrics metrics) {
         this(lostArkRestClient, System::nanoTime, metrics);
     }
@@ -39,17 +41,38 @@ public class LostArkOpenApiClient {
     }
 
     LostArkOpenApiClient(RestClient lostArkRestClient, LongSupplier ticker, CharacterApiMetrics metrics) {
+        this(lostArkRestClient, ticker, metrics, null);
+    }
+
+    @Autowired
+    public LostArkOpenApiClient(RestClient client, CharacterApiMetrics metrics, CharacterSnapshotStore store) {
+        this(client, System::nanoTime, metrics, store);
+    }
+
+    private LostArkOpenApiClient(RestClient lostArkRestClient, LongSupplier ticker, CharacterApiMetrics metrics, CharacterSnapshotStore store) {
         this.lostArkRestClient = lostArkRestClient;
         this.metrics = metrics;
         this.ticker = ticker;
-        this.profiles = new CharacterResponseCache<>(256, ticker, metrics, CharacterApiMetrics.Kind.PROFILE);
-        this.armories = new CharacterResponseCache<>(64, ticker, metrics, CharacterApiMetrics.Kind.ARMORY);
-        this.rosters = new CharacterResponseCache<>(128, ticker, metrics, CharacterApiMetrics.Kind.ROSTER);
+        this.profiles = store == null ? new CharacterResponseCache<>(256, ticker, metrics, CharacterApiMetrics.Kind.PROFILE)
+                : new CharacterResponseCache<>(256, ticker, metrics, CharacterApiMetrics.Kind.PROFILE,
+                    Duration.ofSeconds(60), Duration.ofHours(24), Duration.ofMinutes(1), Instant::now,
+                    store.binding("PROFILE", LostArkProfileResponse.class));
+        this.armories = store == null ? new CharacterResponseCache<>(64, ticker, metrics, CharacterApiMetrics.Kind.ARMORY)
+                : new CharacterResponseCache<>(64, ticker, metrics, CharacterApiMetrics.Kind.ARMORY,
+                    Duration.ofSeconds(60), Duration.ofHours(24), Duration.ofMinutes(1), Instant::now,
+                    store.binding("ARMORY", LostArkArmoryResponse.class));
+        this.rosters = store == null ? new CharacterResponseCache<>(128, ticker, metrics, CharacterApiMetrics.Kind.ROSTER)
+                : new CharacterResponseCache<>(128, ticker, metrics, CharacterApiMetrics.Kind.ROSTER,
+                    Duration.ofSeconds(60), Duration.ofHours(24), Duration.ofMinutes(1), Instant::now,
+                    store.listBinding("ROSTER", LostArkSiblingResponse.class));
     }
 
     public LostArkProfileResponse getCharacterProfile(String characterName) {
+        return getCharacterProfileResponse(characterName).data();
+    }
+    public CachedResponse<LostArkProfileResponse> getCharacterProfileResponse(String characterName) {
         String name = normalize(characterName);
-        return profiles.get(name, () -> loadProfile(name));
+        return profiles.getResponse(name, () -> loadProfile(name));
     }
 
     private LostArkProfileResponse loadProfile(String characterName) {
@@ -59,8 +82,11 @@ public class LostArkOpenApiClient {
     }
 
     public LostArkArmoryResponse getCharacterArmory(String characterName) {
+        return getCharacterArmoryResponse(characterName).data();
+    }
+    public CachedResponse<LostArkArmoryResponse> getCharacterArmoryResponse(String characterName) {
         String name = normalize(characterName);
-        return armories.get(name, () -> loadArmory(name));
+        return armories.getResponse(name, () -> loadArmory(name));
     }
 
     private LostArkArmoryResponse loadArmory(String characterName) {
@@ -73,8 +99,11 @@ public class LostArkOpenApiClient {
     }
 
     public List<LostArkSiblingResponse> getCharacterRoster(String characterName) {
+        return getCharacterRosterResponse(characterName).data();
+    }
+    public CachedResponse<List<LostArkSiblingResponse>> getCharacterRosterResponse(String characterName) {
         String name = normalize(characterName);
-        return rosters.get(name, () -> List.of(fetch(
+        return rosters.getResponse(name, () -> List.of(fetch(
                 "/characters/{characterName}/siblings", name, LostArkSiblingResponse[].class)));
     }
 

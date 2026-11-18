@@ -70,8 +70,10 @@ export function createHomeNewsHandler(dependencies: Dependencies = {}) {
         headers: {
           'Cache-Control': 'public, max-age=0, must-revalidate',
           'Vercel-CDN-Cache-Control':
-            'public, s-maxage=600, stale-while-revalidate=3000, stale-if-error=3000',
+            'public, s-maxage=600, stale-while-revalidate=85800, stale-if-error=85800',
           'X-Content-Type-Options': 'nosniff',
+          'X-Lostark-Updated-At': new Date().toISOString(),
+          'X-Lostark-Stale': 'false',
         },
       })
     } catch {

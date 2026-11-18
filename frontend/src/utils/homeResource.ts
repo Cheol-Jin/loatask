@@ -1,14 +1,14 @@
 import { ref } from 'vue'
 
 const FRESH_MS = 10 * 60_000
-const MAX_AGE_MS = 60 * 60_000
+const MAX_AGE_MS = 24 * 60 * 60_000
 interface StorageAccess {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
 }
 interface ResourceOptions<T> {
   key: string
-  fetch: () => Promise<T[]>
+  fetch: () => Promise<T[] | { data: T[]; updatedAt: number }>
   valid: (value: unknown) => value is T[]
   retryable: (error: unknown) => boolean
   storage?: () => StorageAccess
@@ -60,11 +60,19 @@ export function createHomeResource<T>(options: ResourceOptions<T>) {
     try {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const next = await options.fetch()
+          const received = await options.fetch()
+          const next = Array.isArray(received) ? received : received.data
+          const verifiedAt = Array.isArray(received) ? now() : received.updatedAt
+          if (
+            !Number.isFinite(verifiedAt) ||
+            verifiedAt > now() ||
+            now() - verifiedAt >= MAX_AGE_MS
+          )
+            throw new Error('Expired home news')
           if (!options.valid(next)) throw new Error('Invalid home news')
           data.value = next
           hasData.value = true
-          savedAt.value = now()
+          savedAt.value = verifiedAt
           try {
             storage().setItem(options.key, JSON.stringify({ savedAt: savedAt.value, data: next }))
           } catch {

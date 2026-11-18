@@ -55,6 +55,8 @@ class CharacterProfileErrorTests {
                 """, MediaType.APPLICATION_JSON));
         mvc.perform(get(PROFILE_URL))
                 .andExpect(status().isOk())
+                .andExpect(header().exists("X-Lostark-Updated-At"))
+                .andExpect(header().string("X-Lostark-Stale", "false"))
                 .andExpect(jsonPath("$.characterName").value("test-character"))
                 .andExpect(jsonPath("$.serverName").value("test-server"));
         verify(searches).recordSearch("test-character");
