@@ -322,3 +322,4 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 로컬 검증 완료: 타입 검사·프로덕션 빌드 통과. 데스크톱 두 칸 x=58.5/648.5, y 동일, 390px 모바일은 네리아→욤 세로 배치·가로 넘침 없음. 링크 /tarot·/fortune 이동과 Tab 순서 확인, 운세 횟수 소비 안 함.
 - 로컬 API 서버가 없어 검색 순위/소식은 이번 검증 대상에서 제외(기존 백엔드 변경 없음). 다음: 사용자 CharacterListView의 기존 변경을 제외한 패치만 stage하고 실제 커밋 소스 빌드 후 push.
 - 선별 검증: 이번 CharacterListView 변경을 제거하면 시작 사본과 정확히 일치. 실제 Git index 소스도 임시 폴더에서 타입 검사·빌드 통과. 레이아웃/링크만 변경해 로직 단위 테스트는 반복하지 않음(직전 전체 81개 통과). 다음: main push 및 실제 메인 하단 배포 확인.
+- 배포 완료: 구현 afa155c main push/Vercel success. 실제 메인에서 네리아 왼쪽·욤 오른쪽 동일 행, 독립 링크 /tarot·/fortune 확인. 기존 사용자 6파일 유지. 요청 작업 완료.
