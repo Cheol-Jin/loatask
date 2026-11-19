@@ -275,3 +275,4 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 다음: 이미지·화면 확인, 타입 검사·빌드 후 이번 4파일만 선별 커밋·push 및 운영 확인. 타로 로직은 수정하지 않음.
 - 검증: WebP 변환 도구 미설치로 파일 생성이 안 된 초기 빌드는 누락 자산 오류. macOS sips로 동일 해상도 JPEG(약 616KB) 저장 후 참조 수정, 타입 검사·빌드 통과. 새 라이브러리 설치 없음.
 - 실제 로컬 화면: 이미지 naturalWidth/Height 1024×1536, 320×480 전체 표시, 카드 캡션 텍스트 없음. 390px 모바일 260px 카드/가로 넘침 없음, 상담 시작 링크 정상, 콘솔 오류 0. 이미지·배치만 바꿔 로직 테스트는 재실행하지 않음(직전 전체 70개 통과).
+- 완료: f48ce3e main push/Vercel success. 실제 /tarot에서 1024×1536 새 그림 로드, 카드 캡션 없음·잘림 없이 표시·콘솔 오류 0 확인. 생성 원본은 Codex generated_images에 보존, 프로젝트 자산은 frontend/src/assets/tarot/neria-card.jpg. 출처 문서에 실제 최종 프롬프트 추가. 기존 사용자 6파일 유지, 남은 요청 작업 없음.
