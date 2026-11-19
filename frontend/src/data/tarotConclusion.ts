@@ -101,15 +101,15 @@ export function summarizeTarotReading(reading: TarotReading) {
     items.length === 1
       ? `한 장의 핵심은 ‘${items[0]!.card.keyword}’입니다. ${items[0]!.message}`
       : ordered.length === 1
-        ? `고른 카드들이 ‘${themes[dominant].label}’라는 공통 주제를 반복합니다. 서로 다른 위치의 카드가 같은 방향을 강조하므로 이 부분을 상담의 중심으로 읽었습니다.`
+        ? `고른 카드에서 ‘${themes[dominant].label}’에 해당하는 메시지가 반복됩니다. 서로 다른 위치의 카드가 같은 방향을 강조하므로 이 부분을 상담의 중심으로 읽었습니다.`
         : (bridges[pair] ??
-          `‘${themes[ordered[0]!].label}’와 ‘${themes[ordered[1]!].label}’가 함께 나타납니다. 한쪽에만 힘을 쏟기보다 두 필요를 조율하는 것이 이번 조합의 중심입니다.`)
+          `‘${themes[ordered[0]!].label}’, ‘${themes[ordered[1]!].label}’ 두 주제가 함께 나타납니다. 한쪽에만 힘을 쏟기보다 두 필요를 조율하는 것이 이번 조합의 중심입니다.`)
   const journey =
     items.length > 1
       ? items
           .map(
             (item, index) =>
-              `${index === 0 ? '먼저' : index === items.length - 1 ? '마지막으로' : '그다음'} ${item.position}에 나온 ‘${item.card.name}’ 카드는 ‘${item.card.subtitle}’${item.reversed ? '에서 조정할 부분' : '을 활용할 가능성'}을 보여줍니다.`,
+              `${index === 0 ? '먼저' : index === items.length - 1 ? '마지막으로' : '그다음'} ${item.position}에 나온 ‘${item.card.name}’ 카드는 ‘${item.card.subtitle}’${item.reversed ? '에 담긴 점검할 부분' : '에 담긴 자원'}을 보여줍니다.`,
           )
           .join(' ')
       : ''
