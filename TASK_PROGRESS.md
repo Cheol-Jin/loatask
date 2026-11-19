@@ -264,3 +264,4 @@ npm exec --yes --package=node@24 --call 'npm run build && node --test tests/*.te
 - 레온하트 NPC 11264 자료와 실제 초상화 확인 후 neria.webp 교체(142×142 유지). TarotIntroView.vue의 alt/저작자 캡션과 docs/tarot-assets.md 출처 갱신. modern web guidance accessibility 전문의 이미지 대체 텍스트 지침 적용.
 - 다음: 타입 검사·프로덕션 빌드 후 이번 4파일만 선별 커밋·push하고 실제 배포 이미지 확인. 타로 로직/배치 변경 없음.
 - 타입 검사·프로덕션 빌드 통과. 이미지/문구만 바뀌어 카드 로직 단위 테스트는 재실행하지 않음(직전 전체 70개 통과). 기존 6파일은 커밋에서 제외.
+- 완료: 51bc334 main push/Vercel success. 실제 /tarot에서 레온하트 초상화(neria-Cjj1un3b.webp) 로드, 대체 텍스트와 화면 캡션 확인. 이번 요청 완료, 남은 기능 없음.
