@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { BackendStartupError, waitForBackend } from '@/utils/backendReadiness'
 import { readDataSource, type DataSource } from '@/utils/dataSource'
 import type {
   LostArkCharacter,
@@ -28,7 +29,8 @@ lostarkApi.interceptors.request.use((config) => {
 })
 
 export const getCharacterErrorMessage = (error: unknown): string => {
-  if (error instanceof CharacterProfileError) return error.message
+  if (error instanceof CharacterProfileError || error instanceof BackendStartupError)
+    return error.message
 
   if (axios.isAxiosError<{ code?: string }>(error)) {
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
@@ -57,12 +59,26 @@ export const getCharacters = async (): Promise<LostArkCharacter[]> => {
   return response.data
 }
 
-export const getCharacterProfile = async (characterName: string): Promise<LostArkProfile> => {
+export const prepareCharacterSearch = async (signal: AbortSignal): Promise<void> => {
+  if (!import.meta.env.PROD) return
+  if (!configuredApiUrl) {
+    throw new CharacterProfileError(
+      '캐릭터 조회 서버 연결을 준비 중입니다. 운세 기능은 이용할 수 있습니다.',
+    )
+  }
+  await waitForBackend(`${configuredApiUrl.replace(/\/$/, '')}/status`, { signal })
+}
+
+export const getCharacterProfile = async (
+  characterName: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<LostArkProfile> => {
   const name = characterName.trim()
   if (!name) throw new CharacterProfileError('캐릭터명을 입력해 주세요.')
 
   const response = await lostarkApi.get<LostArkProfile | null>(
     `/official/characters/${encodeURIComponent(name)}/profile`,
+    { signal: options.signal, timeout: 30_000 },
   )
   if (!response.data?.characterName?.trim()) {
     throw new CharacterProfileError('캐릭터를 찾을 수 없습니다. 캐릭터명을 확인해 주세요.')

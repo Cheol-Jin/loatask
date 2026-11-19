@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import HomeNews from '@/components/HomeNews.vue'
 import HomeFortune from '@/components/HomeFortune.vue'
 import HomeTarot from '@/components/HomeTarot.vue'
@@ -21,7 +21,8 @@ const hasQuery = computed(
   () => typeof route.query.character === 'string' && !!route.query.character.trim(),
 )
 const characterStore = useCharacterStore()
-const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
+const { searchedProfile, isSearching, errorMessage, searchPhase, elapsedSeconds } =
+  storeToRefs(characterStore)
 
 const searchKeyword = ref<string | null>('')
 
@@ -38,7 +39,8 @@ const fetchSearchRankings = async () => {
 }
 
 async function runSearch(name: string) {
-  await characterStore.searchCharacter(name)
+  const succeeded = await characterStore.searchCharacter(name)
+  if (!succeeded) return
   if (
     typeof route.query.character === 'string' &&
     route.query.character.trim() === name &&
@@ -64,6 +66,8 @@ watch(
 onMounted(() => {
   if (!hasQuery.value) void fetchSearchRankings()
 })
+
+onBeforeUnmount(() => characterStore.cancelSearch(false))
 
 const goDetail = () => {
   if (!searchedProfile.value) return
@@ -128,6 +132,20 @@ const searchPopularCharacter = async (characterName: string) => {
           >검색</v-btn
         >
       </form>
+      <v-alert v-if="isSearching" type="info" variant="tonal" class="mb-6">
+        <p role="status">
+          {{
+            searchPhase === 'connecting'
+              ? '캐릭터 조회 서버에 연결하고 있습니다.'
+              : '캐릭터 정보를 조회하고 있습니다.'
+          }}
+        </p>
+        <p v-if="searchPhase === 'connecting' && elapsedSeconds >= 5">
+          절전 중인 무료 서버는 시작에 1~3분 정도 걸릴 수 있습니다.
+        </p>
+        <span>{{ elapsedSeconds }}초 경과</span>
+        <v-btn variant="text" @click="characterStore.cancelSearch()">검색 취소</v-btn>
+      </v-alert>
       <div v-if="recent.names.length" class="recent-searches" aria-label="최근 검색">
         <span>최근 검색</span>
         <button v-for="name in recent.names" :key="name" @click="searchPopularCharacter(name)">
