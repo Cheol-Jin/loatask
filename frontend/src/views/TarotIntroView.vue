@@ -36,13 +36,13 @@ onBeforeRouteLeave(() => {
           <span class="portrait-star" aria-hidden="true">✦</span>
           <img
             :src="neriaPortrait"
-            alt="부채를 든 로스트아크 네리아"
+            alt="로스트아크 레온하트 네리아"
             width="142"
             height="142"
             fetchpriority="high"
           />
           <figcaption>
-            <span>마음이 쉬어 가는 한 자리</span><small>네리아 · © Smilegate</small>
+            <span>마음이 쉬어 가는 한 자리</span><small>레온하트 네리아 · © Smilegate</small>
           </figcaption>
         </figure>
       </header>
