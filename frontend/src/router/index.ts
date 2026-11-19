@@ -13,6 +13,12 @@ const router = createRouter({
       path: '/tarot',
       name: 'tarot',
       meta: { title: '네리아의 고민 상담실' },
+      component: () => import('@/views/TarotIntroView.vue'),
+    },
+    {
+      path: '/tarot/reading',
+      name: 'tarotReading',
+      meta: { title: '네리아의 타로 상담' },
       component: () => import('@/views/TarotView.vue'),
     },
     {

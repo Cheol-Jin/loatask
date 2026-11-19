@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, useId } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import TarotArtwork from '@/components/TarotArtwork.vue'
 import TarotChoiceArtwork from '@/components/TarotChoiceArtwork.vue'
+import '@/assets/tarot/night.css'
 import {
   createTarotDeck,
   readTarotCard,
@@ -14,9 +15,12 @@ import {
   type TarotReading,
 } from '@/data/tarot'
 import { useTarotStore } from '@/stores/tarotStore'
-const pageTitle = '네리아의 고민 상담실 | LoaTask'
-onMounted(() => {
+const pageTitle = '네리아의 타로 상담 | LoaTask'
+const roomHeading = ref<HTMLHeadingElement | null>(null)
+onMounted(async () => {
   document.title = pageTitle
+  await nextTick()
+  roomHeading.value?.focus()
 })
 onBeforeRouteLeave(() => {
   if (document.title === pageTitle) document.title = 'LoaTask'
@@ -119,259 +123,250 @@ async function restore() {
 </script>
 
 <template>
-  <v-main lang="ko">
+  <v-main lang="ko" class="tarot-night">
     <v-container class="page-shell tarot-shell">
-      <header class="salon-heading">
-        <div>
-          <p class="eyebrow">NERIA'S TAROT ROOM</p>
-          <h1>네리아의<br />고민 상담실<span aria-hidden="true">.</span></h1>
-          <p class="welcome">
-            말로 다 꺼내지 않아도 괜찮아요.<br />카드에 비친 장면을 따라, 지금의 마음을 천천히
-            정리해 보세요.
-          </p>
-        </div>
-        <div class="salon-sign" aria-hidden="true">
-          <TarotArtwork back /><span>마음이 쉬어 가는 한 자리</span>
-        </div>
+      <header class="room-heading">
+        <RouterLink to="/tarot" class="room-back">← 상담실 입구로</RouterLink>
+        <p class="eyebrow">A QUIET MOMENT UNDER THE STARS</p>
+        <h1 ref="roomHeading" tabindex="-1">별빛 아래, 당신의 이야기</h1>
+        <p>잠시 숨을 고르고, 마음이 머무는 카드를 골라 보세요.</p>
       </header>
-      <div class="salon-note">
-        <span>78장의 카드</span><span>24가지 이야기</span><span>6가지 읽는 방법</span
-        ><RouterLink to="/fortune">욤의 운세도 만나기 ↗</RouterLink>
-      </div>
-      <p class="live-status" role="status">{{ status }}</p>
-      <p v-if="store.storageMessage" :id="`${uid}-storage`" class="storage-note">
-        {{ store.storageMessage }}
-      </p>
+      <div class="reading-table">
+        <p class="live-status" role="status">{{ status }}</p>
+        <p v-if="store.storageMessage" :id="`${uid}-storage`" class="storage-note">
+          {{ store.storageMessage }}
+        </p>
 
-      <section v-if="stage === 'setup'" class="consultation">
-        <div class="section-intro">
-          <span class="step-number">01</span>
-          <div>
-            <h2 ref="setupHeading" tabindex="-1">어떤 이야기를 나눠 볼까요?</h2>
-            <p>
-              상담 주제와 카드 배열을 골라 주세요. 입력한 고민을 분석하는 방식 대신, 준비된 해석을
-              조합해 읽어 드립니다.
-            </p>
+        <section v-if="stage === 'setup'" class="consultation">
+          <div class="section-intro">
+            <span class="step-number">01</span>
+            <div>
+              <h2 ref="setupHeading" tabindex="-1">어떤 이야기를 나눠 볼까요?</h2>
+              <p>
+                상담 주제와 카드 배열을 골라 주세요. 입력한 고민을 분석하는 방식 대신, 준비된 해석을
+                조합해 읽어 드립니다.
+              </p>
+            </div>
           </div>
-        </div>
-        <form action="/tarot" method="get" @submit.prevent="start">
-          <nav class="choice-jumps" aria-label="상담 선택 영역">
-            <a :href="`#${uid}-topics`">01 상담 주제 24가지</a>
-            <a :href="`#${uid}-spreads`">02 읽는 방법 6가지</a>
-          </nav>
-          <fieldset
-            :id="`${uid}-topics`"
-            class="choice-fieldset topic-picker"
-            :aria-describedby="`${uid}-topic-help`"
-          >
-            <legend>상담 주제 · 마음에 닿는 카드 한 장</legend>
-            <p :id="`${uid}-topic-help`" class="choice-help">
-              24개의 이야기 중 하나를 골라 주세요. 카드를 눌러 선택하고, 다른 카드로 언제든 바꿀 수
-              있습니다.
-            </p>
-            <div
-              v-for="group in tarotGroups"
-              :key="group.id"
-              class="topic-group"
-              :class="`group-${group.id}`"
+          <form action="/tarot/reading" method="get" @submit.prevent="start">
+            <nav class="choice-jumps" aria-label="상담 선택 영역">
+              <a :href="`#${uid}-topics`">01 상담 주제</a>
+              <a :href="`#${uid}-spreads`">02 읽는 방법</a>
+            </nav>
+            <fieldset
+              :id="`${uid}-topics`"
+              class="choice-fieldset topic-picker"
+              :aria-describedby="`${uid}-topic-help`"
             >
-              <h3>{{ group.label }}</h3>
-              <div class="topic-choice-grid">
+              <legend>상담 주제 · 마음에 닿는 카드 한 장</legend>
+              <p :id="`${uid}-topic-help`" class="choice-help">
+                마음에 닿는 이야기를 하나 골라 주세요. 카드를 눌러 선택하고, 다른 카드로 언제든 바꿀
+                수 있습니다.
+              </p>
+              <div
+                v-for="group in tarotGroups"
+                :key="group.id"
+                class="topic-group"
+                :class="`group-${group.id}`"
+              >
+                <h3>{{ group.label }}</h3>
+                <div class="topic-choice-grid">
+                  <label
+                    v-for="item in tarotTopics.filter((candidate) => candidate.group === group.id)"
+                    :key="item.id"
+                    class="choice-card topic-choice"
+                    :for="`${uid}-topic-${item.id}`"
+                  >
+                    <input
+                      :id="`${uid}-topic-${item.id}`"
+                      v-model="topicId"
+                      type="radio"
+                      name="topic"
+                      :value="item.id"
+                      :aria-labelledby="`${uid}-topic-name-${item.id}`"
+                      :aria-describedby="`${uid}-topic-note-${item.id}`"
+                    />
+                    <TarotChoiceArtwork kind="topic" :choice-id="item.id" />
+                    <span :id="`${uid}-topic-name-${item.id}`" class="choice-name">{{
+                      item.label
+                    }}</span>
+                    <span :id="`${uid}-topic-note-${item.id}`" class="choice-description">{{
+                      item.angle
+                    }}</span>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+            <fieldset
+              :id="`${uid}-spreads`"
+              class="choice-fieldset spread-picker"
+              :aria-describedby="`${uid}-spread-help`"
+            >
+              <legend>카드를 읽는 방법 · 펼쳐진 모양을 골라 주세요</legend>
+              <p :id="`${uid}-spread-help`" class="choice-help">
+                숫자는 카드를 읽는 순서입니다. 짧은 한 장부터 열 장의 이야기까지, 오늘의 마음에 맞게
+                선택해 주세요.
+              </p>
+              <div class="spread-choice-grid">
                 <label
-                  v-for="item in tarotTopics.filter((candidate) => candidate.group === group.id)"
+                  v-for="item in tarotSpreads"
                   :key="item.id"
-                  class="choice-card topic-choice"
-                  :for="`${uid}-topic-${item.id}`"
+                  class="choice-card spread-choice"
+                  :for="`${uid}-spread-${item.id}`"
                 >
                   <input
-                    :id="`${uid}-topic-${item.id}`"
-                    v-model="topicId"
+                    :id="`${uid}-spread-${item.id}`"
+                    v-model="spreadId"
                     type="radio"
-                    name="topic"
+                    name="spread"
                     :value="item.id"
-                    :aria-labelledby="`${uid}-topic-name-${item.id}`"
-                    :aria-describedby="`${uid}-topic-note-${item.id}`"
+                    :aria-labelledby="`${uid}-spread-name-${item.id}`"
+                    :aria-describedby="`${uid}-spread-note-${item.id}`"
                   />
-                  <TarotChoiceArtwork kind="topic" :choice-id="item.id" />
-                  <span :id="`${uid}-topic-name-${item.id}`" class="choice-name">{{
-                    item.label
-                  }}</span>
-                  <span :id="`${uid}-topic-note-${item.id}`" class="choice-description">{{
-                    item.angle
+                  <TarotChoiceArtwork kind="spread" :choice-id="item.id" />
+                  <span :id="`${uid}-spread-name-${item.id}`" class="choice-name"
+                    >{{ item.label }} · {{ item.positions.length }}장</span
+                  >
+                  <span :id="`${uid}-spread-note-${item.id}`" class="choice-description">{{
+                    item.description
                   }}</span>
                 </label>
               </div>
+            </fieldset>
+            <div class="selected-consultation">
+              <span>고른 이야기</span><strong>{{ topic.label }}</strong
+              ><span aria-hidden="true">/</span
+              ><strong>{{ spread.label }} · {{ spread.positions.length }}장</strong>
             </div>
-          </fieldset>
-          <fieldset
-            :id="`${uid}-spreads`"
-            class="choice-fieldset spread-picker"
-            :aria-describedby="`${uid}-spread-help`"
-          >
-            <legend>카드를 읽는 방법 · 펼쳐진 모양을 골라 주세요</legend>
-            <p :id="`${uid}-spread-help`" class="choice-help">
-              숫자는 카드를 읽는 순서입니다. 짧은 한 장부터 열 장의 이야기까지, 오늘의 마음에 맞게
-              선택해 주세요.
-            </p>
-            <div class="spread-choice-grid">
-              <label
-                v-for="item in tarotSpreads"
-                :key="item.id"
-                class="choice-card spread-choice"
-                :for="`${uid}-spread-${item.id}`"
-              >
-                <input
-                  :id="`${uid}-spread-${item.id}`"
-                  v-model="spreadId"
-                  type="radio"
-                  name="spread"
-                  :value="item.id"
-                  :aria-labelledby="`${uid}-spread-name-${item.id}`"
-                  :aria-describedby="`${uid}-spread-note-${item.id}`"
-                />
-                <TarotChoiceArtwork kind="spread" :choice-id="item.id" />
-                <span :id="`${uid}-spread-name-${item.id}`" class="choice-name"
-                  >{{ item.label }} · {{ item.positions.length }}장</span
-                >
-                <span :id="`${uid}-spread-note-${item.id}`" class="choice-description">{{
-                  item.description
-                }}</span>
-              </label>
+            <ol class="position-preview">
+              <li v-for="(position, index) in spread.positions" :key="position">
+                <span>{{ String(index + 1).padStart(2, '0') }}</span
+                >{{ position }}
+              </li>
+            </ol>
+            <p v-if="error" role="alert" class="storage-note">{{ error }}</p>
+            <div class="actions">
+              <button type="submit" class="primary-action">
+                카드 펼치기 <span aria-hidden="true">↗</span></button
+              ><button v-if="store.lastReading" type="button" class="text-action" @click="restore">
+                지난 상담 다시 보기
+              </button>
             </div>
-          </fieldset>
-          <div class="selected-consultation">
-            <span>고른 이야기</span><strong>{{ topic.label }}</strong
-            ><span aria-hidden="true">/</span
-            ><strong>{{ spread.label }} · {{ spread.positions.length }}장</strong>
+          </form>
+        </section>
+
+        <section v-else-if="stage === 'draw'" class="draw-section">
+          <div class="section-intro">
+            <span class="step-number">02</span>
+            <div>
+              <h2 ref="drawHeading" tabindex="-1">
+                마음이 가는 {{ activeLayout.positions.length }}장을 골라 주세요
+              </h2>
+              <p>
+                {{ tarotTopics.find((item) => item.id === activeTopic)?.label }} ·
+                {{ activeLayout.label }} · {{ picks.length }}/{{ activeLayout.positions.length }}장
+                선택
+              </p>
+            </div>
           </div>
-          <ol class="position-preview">
-            <li v-for="(position, index) in spread.positions" :key="position">
-              <span>{{ String(index + 1).padStart(2, '0') }}</span
-              >{{ position }}
-            </li>
-          </ol>
-          <p v-if="error" role="alert" class="storage-note">{{ error }}</p>
-          <div class="actions">
-            <button type="submit" class="primary-action">
-              카드 펼치기 <span aria-hidden="true">↗</span></button
-            ><button v-if="store.lastReading" type="button" class="text-action" @click="restore">
-              지난 상담 다시 보기
+          <div class="draw-grid">
+            <button
+              v-for="(card, index) in pool"
+              :key="card.cardId"
+              :ref="
+                (el) => {
+                  drawButtons[index] = el as HTMLButtonElement | null
+                }
+              "
+              type="button"
+              class="draw-card"
+              :class="{ picked: isPicked(card.cardId) }"
+              :disabled="isPicked(card.cardId) || picking"
+              :aria-label="
+                isPicked(card.cardId)
+                  ? `${index + 1}번 카드: ${cardName(card.cardId)}`
+                  : `${index + 1}번 카드 고르기`
+              "
+              @click="pick(card)"
+            >
+              <span class="draw-number">{{ String(index + 1).padStart(2, '0') }}</span
+              ><TarotArtwork
+                :back="!isPicked(card.cardId)"
+                :suit="tarotCards.find((item) => item.id === card.cardId)?.suit"
+                :number="tarotCards.find((item) => item.id === card.cardId)?.number"
+              /><span class="draw-caption">{{
+                isPicked(card.cardId) ? cardName(card.cardId) : 'NERIA'
+              }}</span>
             </button>
           </div>
-        </form>
-      </section>
-
-      <section v-else-if="stage === 'draw'" class="draw-section">
-        <div class="section-intro">
-          <span class="step-number">02</span>
-          <div>
-            <h2 ref="drawHeading" tabindex="-1">
-              마음이 가는 {{ activeLayout.positions.length }}장을 골라 주세요
-            </h2>
-            <p>
-              {{ tarotTopics.find((item) => item.id === activeTopic)?.label }} ·
-              {{ activeLayout.label }} · {{ picks.length }}/{{ activeLayout.positions.length }}장
-              선택
-            </p>
+          <div class="actions">
+            <button type="button" class="primary-action" :disabled="picking" @click="autoPick">
+              남은 카드 한 번에 고르기</button
+            ><button type="button" class="text-action" @click="edit">주제와 배열 바꾸기</button>
           </div>
-        </div>
-        <div class="draw-grid">
-          <button
-            v-for="(card, index) in pool"
-            :key="card.cardId"
-            :ref="
-              (el) => {
-                drawButtons[index] = el as HTMLButtonElement | null
-              }
-            "
-            type="button"
-            class="draw-card"
-            :class="{ picked: isPicked(card.cardId) }"
-            :disabled="isPicked(card.cardId) || picking"
-            :aria-label="
-              isPicked(card.cardId)
-                ? `${index + 1}번 카드: ${cardName(card.cardId)}`
-                : `${index + 1}번 카드 고르기`
-            "
-            @click="pick(card)"
-          >
-            <span class="draw-number">{{ String(index + 1).padStart(2, '0') }}</span
-            ><TarotArtwork
-              :back="!isPicked(card.cardId)"
-              :suit="tarotCards.find((item) => item.id === card.cardId)?.suit"
-              :number="tarotCards.find((item) => item.id === card.cardId)?.number"
-            /><span class="draw-caption">{{
-              isPicked(card.cardId) ? cardName(card.cardId) : 'NERIA'
-            }}</span>
-          </button>
-        </div>
-        <div class="actions">
-          <button type="button" class="primary-action" :disabled="picking" @click="autoPick">
-            남은 카드 한 번에 고르기</button
-          ><button type="button" class="text-action" @click="edit">주제와 배열 바꾸기</button>
-        </div>
-      </section>
+        </section>
 
-      <section v-else-if="reading && readingTopic && readingSpread" class="reading-section">
-        <div class="reading-heading">
-          <p class="eyebrow">{{ readingTopic.label }} · {{ readingSpread.label }}</p>
-          <h2
-            ref="resultHeading"
-            tabindex="-1"
-            :aria-describedby="store.storageMessage ? `${uid}-storage` : undefined"
-          >
-            지금의 나에게 남기는 이야기
-          </h2>
-          <p>{{ readingTopic.reflection }}</p>
-        </div>
-        <ol class="reading-grid" role="list">
-          <li v-for="(item, index) in readings" :key="item.card.id">
-            <article class="reading-card">
-              <TarotArtwork
-                :suit="item.card.suit"
-                :number="item.card.number"
-                :class="{ reversed: item.reversed }"
-              />
-              <header>
-                <p class="position-label">
-                  {{ String(index + 1).padStart(2, '0') }} · {{ item.position }}
-                </p>
-                <h3>{{ item.card.name }}</h3>
-                <p class="card-subtitle">
-                  {{ item.card.subtitle }} <span>{{ item.reversed ? '역방향' : '정방향' }}</span>
-                </p>
-              </header>
-              <div class="card-reading">
-                <p>{{ item.message }}</p>
-                <p class="reflection">{{ item.reflection }}</p>
-              </div>
-              <footer>
-                <span>작게 해 볼 일</span>
-                <p>{{ item.action }}</p>
-              </footer>
-            </article>
-          </li>
-        </ol>
-        <aside class="closing-note">
-          <p class="eyebrow">네리아가 건네는 마지막 질문</p>
-          <h3>이 중에서, 오늘 해 볼 수 있는 것은 무엇인가요?</h3>
-          <p>{{ readingTopic.action }}</p>
-        </aside>
-        <div class="actions">
-          <button type="button" class="primary-action" @click="edit">새로운 상담 시작하기</button
-          ><RouterLink class="text-action" to="/fortune">욤의 운세 보러 가기</RouterLink>
-        </div>
-      </section>
-      <footer class="tarot-footer">
-        <p>
-          전통 타로의 78장 구성을 참고한 창작 해석입니다. 카드·방향·상담 주제·배열의 위치를 함께
-          살펴보는 마음 정리의 시간으로 즐겨 주세요.
-        </p>
-        <p>
-          최근 상담 한 건은 이 브라우저에 저장됩니다. 다른 기기와 공유되지 않으며, 저장소를 지우면
-          사라집니다. 타로는 횟수 제한 없이 이용할 수 있고 욤의 운세 사용 횟수와는 별개입니다.
-        </p>
-      </footer>
+        <section v-else-if="reading && readingTopic && readingSpread" class="reading-section">
+          <div class="reading-heading">
+            <p class="eyebrow">{{ readingTopic.label }} · {{ readingSpread.label }}</p>
+            <h2
+              ref="resultHeading"
+              tabindex="-1"
+              :aria-describedby="store.storageMessage ? `${uid}-storage` : undefined"
+            >
+              지금의 나에게 남기는 이야기
+            </h2>
+            <p>{{ readingTopic.reflection }}</p>
+          </div>
+          <ol class="reading-grid" role="list">
+            <li v-for="(item, index) in readings" :key="item.card.id">
+              <article class="reading-card">
+                <TarotArtwork
+                  :suit="item.card.suit"
+                  :number="item.card.number"
+                  :class="{ reversed: item.reversed }"
+                />
+                <header>
+                  <p class="position-label">
+                    {{ String(index + 1).padStart(2, '0') }} · {{ item.position }}
+                  </p>
+                  <h3>{{ item.card.name }}</h3>
+                  <p class="card-subtitle">
+                    {{ item.card.subtitle }} <span>{{ item.reversed ? '역방향' : '정방향' }}</span>
+                  </p>
+                </header>
+                <div class="card-reading">
+                  <p>{{ item.message }}</p>
+                  <p class="reflection">{{ item.reflection }}</p>
+                </div>
+                <footer>
+                  <span>작게 해 볼 일</span>
+                  <p>{{ item.action }}</p>
+                </footer>
+              </article>
+            </li>
+          </ol>
+          <aside class="closing-note">
+            <p class="eyebrow">네리아가 건네는 마지막 질문</p>
+            <h3>이 중에서, 오늘 해 볼 수 있는 것은 무엇인가요?</h3>
+            <p>{{ readingTopic.action }}</p>
+          </aside>
+          <div class="actions">
+            <button type="button" class="primary-action" @click="edit">새로운 상담 시작하기</button
+            ><RouterLink class="text-action" to="/fortune">욤의 운세 보러 가기</RouterLink>
+          </div>
+        </section>
+        <footer class="tarot-footer">
+          <p>
+            전통 타로를 참고한 창작 해석입니다. 카드·방향·상담 주제·배열의 위치를 함께 살펴보는 마음
+            정리의 시간으로 즐겨 주세요.
+          </p>
+          <p>
+            최근 상담 한 건은 이 브라우저에 저장됩니다. 다른 기기와 공유되지 않으며, 저장소를 지우면
+            사라집니다. 타로는 횟수 제한 없이 이용할 수 있고 욤의 운세 사용 횟수와는 별개입니다.
+          </p>
+        </footer>
+      </div>
     </v-container>
   </v-main>
 </template>
@@ -379,69 +374,58 @@ async function restore() {
 <style scoped>
 .tarot-shell {
   --salon-accent: #d9c398;
-  --salon-wine: #291b22;
   max-width: 1120px;
 }
-.salon-heading {
-  display: grid;
-  grid-template-columns: 1fr 220px;
-  align-items: center;
-  gap: 48px;
-  padding-block: 12px 36px;
-}
-.eyebrow {
-  font-size: 0.6875rem;
-  letter-spacing: 0.16em;
-  color: var(--salon-accent);
-  margin-block-end: 18px;
-}
-h1 {
-  font-size: clamp(2.5rem, 7vw, 4.5rem);
-  font-weight: 500;
-  letter-spacing: -0.055em;
-  line-height: 1.17;
-}
-h1 span {
-  color: #ba8699;
-}
-.welcome {
-  color: var(--muted);
-  margin-block-start: 24px;
-  line-height: 1.9;
-  font-size: 0.9375rem;
-}
-.salon-sign {
-  padding: 20px 36px;
-  border: 1px solid #65515b;
-  background: var(--salon-wine);
-  color: var(--salon-accent);
-}
-.salon-sign svg {
-  display: block;
-  width: 100%;
-}
-.salon-sign > span {
-  display: block;
+.room-heading {
   text-align: center;
-  font-size: 0.625rem;
-  margin-block-start: 16px;
-  white-space: nowrap;
+  margin-block-end: 32px;
 }
-.salon-note {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 28px;
-  border-block: 1px solid var(--line);
-  padding-block: 17px;
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-.salon-note a {
+.room-back {
   display: inline-flex;
   align-items: center;
-  min-block-size: 24px;
-  margin-inline-start: auto;
+  min-block-size: 48px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-block-end: 24px;
+}
+.eyebrow {
+  font-size: 0.625rem;
+  letter-spacing: 0.2em;
   color: var(--salon-accent);
+  margin-block-end: 12px;
+}
+h1 {
+  font-size: clamp(1.6rem, 4vw, 2.375rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  scroll-margin-block-start: 90px;
+}
+h1:focus {
+  outline: none;
+}
+.room-heading {
+  text-align: center;
+  margin-block-end: 28px;
+}
+.room-back {
+  display: flex;
+  align-items: center;
+  min-block-size: 48px;
+  inline-size: fit-content;
+  color: var(--salon-accent);
+  font-size: 0.8125rem;
+  margin-block-end: 24px;
+}
+.room-heading > p:last-child {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  margin-block-start: 12px;
+}
+.reading-table {
+  background: #101426f0;
+  border: 1px solid #605a70;
+  padding: 32px;
+  box-shadow: 0 24px 80px #03061566;
 }
 .live-status {
   min-height: 1.75rem;
@@ -690,23 +674,15 @@ button:disabled {
 h2[tabindex] {
   scroll-margin-block-start: 90px;
 }
-@media (pointer: coarse) {
-  .salon-note a {
-    min-block-size: 48px;
-  }
-}
+
 @media (max-width: 700px) {
-  .salon-heading {
-    grid-template-columns: 1fr 120px;
-    gap: 16px;
+  .reading-table {
+    padding: 20px 14px;
   }
-  .salon-sign {
-    padding: 12px;
+  .tarot-shell {
+    padding-inline: 12px;
   }
-  .salon-sign > span {
-    white-space: normal;
-    font-size: 0.5625rem;
-  }
+
   .reading-grid {
     grid-template-columns: 1fr;
   }
@@ -714,24 +690,8 @@ h2[tabindex] {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
   }
-  .salon-note {
-    gap: 10px 16px;
-  }
-  .salon-note a {
-    display: inline-flex;
-    align-items: center;
-    min-block-size: 24px;
-    margin-inline-start: 0;
-  }
 }
-@media (max-width: 380px) {
-  .salon-heading {
-    grid-template-columns: 1fr;
-  }
-  .salon-sign {
-    display: none;
-  }
-}
+
 @media (prefers-reduced-motion: no-preference) {
   .draw-card {
     transition:
@@ -830,7 +790,7 @@ h2[tabindex] {
   min-inline-size: 0;
   padding: 14px 14px 18px;
   border: 1px solid #675862;
-  background: #1c171c;
+  background: #1a1d32;
   cursor: pointer;
   container-type: inline-size;
 }
@@ -864,7 +824,7 @@ h2[tabindex] {
 }
 .choice-card:has(> input:checked) {
   border-color: var(--salon-accent);
-  background: #2a2225;
+  background: #2a293d;
   box-shadow: inset 0 0 0 1px var(--salon-accent);
 }
 .choice-card:has(> input:focus-visible) {
