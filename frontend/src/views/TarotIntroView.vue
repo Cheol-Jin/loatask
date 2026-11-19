@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import neriaPortrait from '@/assets/tarot/neria.webp'
+import neriaPortrait from '@/assets/tarot/neria-card.jpg'
 import '@/assets/tarot/night.css'
 const heading = ref<HTMLHeadingElement | null>(null)
 const pageTitle = '네리아의 고민 상담실 | LoaTask'
@@ -32,19 +32,15 @@ onBeforeRouteLeave(() => {
             >상담 시작하기 <span aria-hidden="true">↗</span></RouterLink
           >
         </div>
-        <figure class="neria-portrait">
-          <span class="portrait-star" aria-hidden="true">✦</span>
+        <div class="neria-card">
           <img
             :src="neriaPortrait"
-            alt="로스트아크 레온하트 네리아"
-            width="142"
-            height="142"
+            alt="레온하트 네리아를 모티프로 그린 달과 별의 타로 일러스트"
+            width="1024"
+            height="1536"
             fetchpriority="high"
           />
-          <figcaption>
-            <span>마음이 쉬어 가는 한 자리</span><small>레온하트 네리아 · © Smilegate</small>
-          </figcaption>
-        </figure>
+        </div>
       </header>
     </v-container>
   </v-main>
@@ -104,47 +100,16 @@ h1:focus {
 .enter-room:hover {
   background: #e5d2ac;
 }
-.neria-portrait {
-  position: relative;
-  margin: 0;
-  min-block-size: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #72647c;
-  background: #17172cbb;
-  padding: 32px 24px;
-  box-shadow: 0 18px 80px #05081955;
+.neria-card {
+  inline-size: 100%;
+  max-inline-size: 340px;
+  justify-self: end;
 }
-.neria-portrait::before {
-  content: '';
-  position: absolute;
-  inset: 12px;
-  border: 1px solid #ad9c764d;
-  pointer-events: none;
-}
-.portrait-star {
-  color: var(--salon-accent);
-  margin-block-end: 20px;
-}
-.neria-portrait img {
+.neria-card img {
   display: block;
-  inline-size: 200px;
-  block-size: 200px;
-  object-fit: contain;
-}
-figcaption {
-  text-align: center;
-  margin-block-start: 24px;
-  color: var(--salon-accent);
-  font-size: 0.8125rem;
-}
-figcaption small {
-  display: block;
-  font-size: 0.625rem;
-  color: var(--muted);
-  margin-block-start: 12px;
+  inline-size: 100%;
+  block-size: auto;
+  box-shadow: 0 20px 70px #03051066;
 }
 @media (max-width: 760px) {
   .intro-shell {
@@ -154,19 +119,15 @@ figcaption small {
     grid-template-columns: minmax(0, 1fr) 230px;
     gap: 24px;
   }
-  .neria-portrait {
-    min-block-size: 330px;
-    padding-inline: 16px;
-  }
-  .neria-portrait img {
-    inline-size: 170px;
-    block-size: 170px;
-  }
   h1 {
     font-size: clamp(2.5rem, 6vw, 4rem);
   }
 }
 @media (max-width: 560px) {
+  .neria-card {
+    inline-size: min(100%, 260px);
+    justify-self: center;
+  }
   .intro-heading {
     grid-template-columns: 1fr;
     gap: 36px;
@@ -183,15 +144,6 @@ figcaption small {
   }
   .enter-room {
     margin-block-start: 28px;
-  }
-  .neria-portrait {
-    inline-size: min(100%, 290px);
-    min-block-size: 300px;
-    justify-self: center;
-  }
-  .neria-portrait img {
-    inline-size: 160px;
-    block-size: 160px;
   }
 }
 </style>
