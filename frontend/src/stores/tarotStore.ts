@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { validTarotReading, type TarotReading } from '@/data/tarot'
+import { migrateTarotReading, validTarotReading, type TarotReading } from '@/data/tarot'
 const KEY = 'loatask.neria-tarot.v1'
 export const useTarotStore = defineStore('neria-tarot', () => {
   const lastReading = ref<TarotReading | null>(null)
@@ -10,8 +10,12 @@ export const useTarotStore = defineStore('neria-tarot', () => {
       const raw = localStorage.getItem(KEY)
       if (!raw) return
       const value: unknown = JSON.parse(raw)
-      if (!validTarotReading(value)) throw new Error('Invalid tarot record')
-      lastReading.value = value
+      const restored = migrateTarotReading(value)
+      if (!restored) throw new Error('Invalid tarot record')
+      lastReading.value = restored
+      if ((value as TarotReading).cards.length !== restored.cards.length)
+        storageMessage.value =
+          '이전 상담은 바뀐 배열에 맞춰 핵심 세 장으로 보여드립니다. 기존 저장 원본은 유지됩니다.'
     } catch {
       storageMessage.value = '이전 상담을 불러오지 못했습니다. 새 상담은 계속 이용할 수 있습니다.'
     }

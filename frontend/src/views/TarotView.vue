@@ -15,6 +15,7 @@ import {
   type DrawnTarotCard,
   type TarotReading,
 } from '@/data/tarot'
+import { summarizeTarotReading } from '@/data/tarotConclusion'
 import { useTarotStore } from '@/stores/tarotStore'
 const pageTitle = '네리아의 타로 상담 | LoaTask'
 const roomHeading = ref<HTMLHeadingElement | null>(null)
@@ -59,6 +60,7 @@ const readingSpread = computed(() =>
 const readings = computed(() =>
   reading.value ? reading.value.cards.map((_, index) => readTarotCard(reading.value!, index)) : [],
 )
+const conclusion = computed(() => (reading.value ? summarizeTarotReading(reading.value) : null))
 const isPicked = (cardId: string) => picks.value.some((item) => item.cardId === cardId)
 const cardName = (cardId: string) => tarotCards.find((item) => item.id === cardId)?.name ?? ''
 
@@ -111,6 +113,7 @@ async function pick(card: DrawnTarotCard, event?: MouseEvent, immediate = false)
       status.value = ''
       await nextTick()
       resultHeading.value?.focus()
+      resultHeading.value?.scrollIntoView({ block: 'start' })
     } else {
       status.value = `${picks.value.length}장 선택했습니다. ${activeLayout.value.positions.length - picks.value.length}장 더 골라 주세요.`
     }
@@ -141,6 +144,7 @@ async function restore() {
   status.value = ''
   await nextTick()
   resultHeading.value?.focus()
+  resultHeading.value?.scrollIntoView({ block: 'start' })
 }
 </script>
 
@@ -226,8 +230,8 @@ async function restore() {
             >
               <legend>카드를 읽는 방법 · 펼쳐진 모양을 골라 주세요</legend>
               <p :id="`${uid}-spread-help`" class="choice-help">
-                숫자는 카드를 읽는 순서입니다. 짧은 한 장부터 열 장의 이야기까지, 오늘의 마음에 맞게
-                선택해 주세요.
+                숫자는 카드를 읽는 순서입니다. 한 장 또는 세 장으로, 오늘의 마음에 맞게 선택해
+                주세요.
               </p>
               <div class="spread-choice-grid">
                 <label
@@ -341,43 +345,58 @@ async function restore() {
               tabindex="-1"
               :aria-describedby="store.storageMessage ? `${uid}-storage` : undefined"
             >
-              지금의 나에게 남기는 이야기
+              네리아의 종합 결론
             </h2>
-            <p>{{ readingTopic.reflection }}</p>
           </div>
-          <ol class="reading-grid" role="list">
-            <li v-for="(item, index) in readings" :key="item.card.id">
-              <article class="reading-card">
-                <TarotArtwork
-                  :suit="item.card.suit"
-                  :number="item.card.number"
-                  :class="{ reversed: item.reversed }"
-                />
-                <header>
-                  <p class="position-label">
-                    {{ String(index + 1).padStart(2, '0') }} · {{ item.position }}
-                  </p>
-                  <h3>{{ item.card.name }}</h3>
-                  <p class="card-subtitle">
-                    {{ item.card.subtitle }} <span>{{ item.reversed ? '역방향' : '정방향' }}</span>
-                  </p>
-                </header>
-                <div class="card-reading">
-                  <p>{{ item.message }}</p>
-                  <p class="reflection">{{ item.reflection }}</p>
-                </div>
-                <footer>
-                  <span>작게 해 볼 일</span>
-                  <p>{{ item.action }}</p>
-                </footer>
-              </article>
-            </li>
-          </ol>
-          <aside class="closing-note">
-            <p class="eyebrow">네리아가 건네는 마지막 질문</p>
-            <h3>이 중에서, 오늘 해 볼 수 있는 것은 무엇인가요?</h3>
-            <p>{{ readingTopic.action }}</p>
-          </aside>
+          <section v-if="conclusion" class="overall-reading">
+            <p class="eyebrow">고른 카드를 함께 읽으면</p>
+            <h3>{{ conclusion.headline }}</h3>
+            <p>{{ conclusion.message }}</p>
+            <p class="conclusion-reason">{{ conclusion.reasoning }}</p>
+            <p v-if="conclusion.journey" class="conclusion-journey">{{ conclusion.journey }}</p>
+            <ol class="conclusion-evidence" role="list">
+              <li v-for="item in conclusion.evidence" :key="item.name">
+                <span>{{ item.position }}</span
+                ><strong>{{ item.name }}</strong
+                ><span>{{ item.direction }} · {{ item.keyword }}</span>
+              </li>
+            </ol>
+            <h4>그래서, 오늘의 한 걸음</h4>
+            <p>{{ conclusion.nextStep }}</p>
+            <p class="topic-action">{{ conclusion.topicAction }}</p>
+          </section>
+          <details class="reading-details">
+            <summary>카드별 자세한 해석 보기</summary>
+            <ol class="reading-grid" role="list">
+              <li v-for="(item, index) in readings" :key="item.card.id">
+                <article class="reading-card">
+                  <TarotArtwork
+                    :suit="item.card.suit"
+                    :number="item.card.number"
+                    :class="{ reversed: item.reversed }"
+                  />
+                  <header>
+                    <p class="position-label">
+                      {{ String(index + 1).padStart(2, '0') }} · {{ item.position }}
+                    </p>
+                    <h3>{{ item.card.name }}</h3>
+                    <p class="card-subtitle">
+                      {{ item.card.subtitle }}
+                      <span>{{ item.reversed ? '역방향' : '정방향' }}</span>
+                    </p>
+                  </header>
+                  <div class="card-reading">
+                    <p>{{ item.message }}</p>
+                    <p class="reflection">{{ item.reflection }}</p>
+                  </div>
+                  <footer>
+                    <span>작게 해 볼 일</span>
+                    <p>{{ item.action }}</p>
+                  </footer>
+                </article>
+              </li>
+            </ol>
+          </details>
           <div class="actions">
             <button type="button" class="primary-action" @click="edit">새로운 상담 시작하기</button
             ><RouterLink class="text-action" to="/fortune">욤의 운세 보러 가기</RouterLink>
@@ -665,6 +684,74 @@ h2 {
   }
   .card-reading {
     font-size: 0.9375rem;
+  }
+}
+.overall-reading {
+  border: 1px solid #82718a;
+  padding: 24px;
+  background: #1a1d32;
+  line-height: 1.9;
+}
+.overall-reading h3 {
+  font-size: clamp(1.25rem, 3vw, 1.625rem);
+  font-weight: 500;
+  margin-block-end: 18px;
+}
+.overall-reading > p {
+  font-size: 0.9375rem;
+  margin-block-end: 14px;
+}
+.conclusion-reason {
+  color: var(--muted);
+}
+.conclusion-evidence {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px 0;
+  list-style: none;
+  border-block: 1px solid var(--line);
+  margin-block: 20px;
+}
+.conclusion-evidence span,
+.conclusion-evidence strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.conclusion-evidence span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.conclusion-evidence strong {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--salon-accent);
+}
+.overall-reading h4 {
+  font-size: 0.875rem;
+  color: var(--salon-accent);
+  margin-block-end: 10px;
+}
+.topic-action {
+  border-inline-start: 2px solid var(--salon-accent);
+  padding-inline-start: 14px;
+}
+.reading-details {
+  margin-block: 24px;
+}
+.reading-details summary {
+  display: list-item;
+  min-block-size: 48px;
+  padding-block: 12px;
+  cursor: pointer;
+  color: var(--salon-accent);
+}
+@media (max-width: 600px) {
+  .overall-reading {
+    padding: 18px;
+  }
+  .conclusion-evidence {
+    grid-template-columns: 1fr;
   }
 }
 .closing-note {

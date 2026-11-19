@@ -81,3 +81,22 @@ test('잘못된 상담은 현재 결과를 덮어쓰지 않는다', () => {
   assert.throws(() => store.save({ ...record(), cards: [] }))
   assert.deepEqual(store.lastReading, record())
 })
+
+test('예전 네 장 상담은 세 장으로 복원해도 저장 원본을 덮어쓰지 않는다', () => {
+  const old = {
+    ...record(),
+    spreadId: 'choice',
+    cards: ['fool', 'magician', 'priestess', 'empress'].map((cardId) => ({
+      cardId,
+      reversed: false,
+    })),
+  }
+  const raw = JSON.stringify(old)
+  const { store, saved } = setup(raw)
+  assert.deepEqual(
+    store.lastReading.cards.map((card) => card.cardId),
+    ['fool', 'magician', 'empress'],
+  )
+  assert.equal(saved.get(key), raw)
+  assert.match(store.storageMessage, /핵심 세 장/)
+})

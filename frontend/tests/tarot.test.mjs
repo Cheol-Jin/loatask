@@ -14,6 +14,7 @@ const {
   createTarotDeck,
   readTarotCard,
   validTarotReading,
+  migrateTarotReading,
 } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`)
 const record = (spreadId = 'mind') => ({
   version: 1,
@@ -126,5 +127,32 @@ test('모든 상담 주제에는 서로 다른 삽화가 있으며 배열 그림
       assert.ok(card.x - halfWidth >= 8 && card.x + halfWidth <= 172)
       assert.ok(card.y - halfHeight >= 7 && card.y + halfHeight <= 183)
     }
+  }
+})
+
+test('새 상담은 최대 세 장이며 예전 긴 상담은 핵심 카드의 의미와 원본을 보존한다', () => {
+  assert.ok(tarotSpreads.every((item) => item.positions.length >= 1 && item.positions.length <= 3))
+  for (const [spreadId, length, indices] of [
+    ['choice', 4, [0, 1, 3]],
+    ['path', 5, [0, 2, 4]],
+    ['cross', 10, [2, 7, 9]],
+  ]) {
+    const old = {
+      ...record(),
+      spreadId,
+      cards: tarotCards
+        .slice(0, length)
+        .map((item, i) => ({ cardId: item.id, reversed: i % 2 === 0 })),
+    }
+    const before = JSON.stringify(old)
+    assert.equal(validTarotReading(old), false)
+    const migrated = migrateTarotReading(old)
+    assert.equal(validTarotReading(migrated), true)
+    assert.deepEqual(
+      migrated.cards,
+      indices.map((index) => old.cards[index]),
+    )
+    assert.equal(JSON.stringify(old), before)
+    assert.equal(migrateTarotReading({ ...old, cards: old.cards.map(() => old.cards[0]) }), null)
   }
 })

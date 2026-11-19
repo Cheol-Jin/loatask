@@ -1245,31 +1245,20 @@ export const tarotSpreads: TarotSpread[] = [
   {
     id: 'choice',
     label: '선택의 갈림길',
-    description: '두 선택의 이점과 감수할 부분을 같은 눈높이로 살펴요.',
-    positions: ['선택 A의 관점', '선택 B의 관점', '놓치기 쉬운 조건', '나의 선택 기준'],
+    description: '두 선택과 나의 기준을 세 장으로 함께 살펴요.',
+    positions: ['선택 A의 관점', '선택 B의 관점', '나의 선택 기준'],
   },
   {
     id: 'path',
     label: '앞으로의 한 걸음',
-    description: '강점과 걸림돌을 나누고 현실적인 다음 행동을 골라요.',
-    positions: ['현재 상황', '활용할 강점', '살펴볼 걸림돌', '도움받을 자원', '다음 한 걸음'],
+    description: '현재 상황과 걸림돌을 살펴보고 현실적인 다음 행동을 골라요.',
+    positions: ['현재 상황', '살펴볼 걸림돌', '다음 한 걸음'],
   },
   {
     id: 'cross',
-    label: '깊이 읽는 열 장',
-    description: '켈틱 크로스에서 착안해 배경과 환경까지 차근차근 살펴요.',
-    positions: [
-      '현재의 중심',
-      '엇갈리는 힘',
-      '마음의 바탕',
-      '지나온 경험',
-      '바라는 방향',
-      '다음에 살필 장면',
-      '나의 태도',
-      '주변 환경',
-      '기대와 걱정',
-      '이어 갈 실천',
-    ],
+    label: '마음의 깊이',
+    description: '마음의 바탕과 주변 환경, 이어 갈 실천을 세 장으로 읽어요.',
+    positions: ['마음의 바탕', '주변 환경', '이어 갈 실천'],
   },
 ]
 
@@ -1287,7 +1276,7 @@ export function createTarotDeck(random = Math.random): DrawnTarotCard[] {
   }
   return deck
 }
-export function validTarotReading(value: unknown): value is TarotReading {
+function validReadingLength(value: unknown, length: number): value is TarotReading {
   if (!value || typeof value !== 'object') return false
   const reading = value as Partial<TarotReading>
   const spread = tarotSpreads.find((item) => item.id === reading.spreadId)
@@ -1298,7 +1287,7 @@ export function validTarotReading(value: unknown): value is TarotReading {
     typeof reading.createdAt === 'string' &&
     Number.isFinite(Date.parse(reading.createdAt)) &&
     Array.isArray(reading.cards) &&
-    reading.cards.length === spread.positions.length &&
+    reading.cards.length === length &&
     reading.cards.every(
       (card) =>
         card &&
@@ -1307,6 +1296,24 @@ export function validTarotReading(value: unknown): value is TarotReading {
     ) &&
     new Set(reading.cards.map((card) => card.cardId)).size === reading.cards.length
   )
+}
+export function validTarotReading(value: unknown): value is TarotReading {
+  const spreadId = (value as Partial<TarotReading> | null)?.spreadId
+  const spread = tarotSpreads.find((item) => item.id === spreadId)
+  return !!spread && validReadingLength(value, spread.positions.length)
+}
+// 저장된 원본은 덮어쓰지 않고, 바뀐 배열의 의미에 해당하는 카드만 복원합니다.
+export function migrateTarotReading(value: unknown): TarotReading | null {
+  if (validTarotReading(value)) return value
+  const legacy: Record<string, { count: number; indices: number[] }> = {
+    choice: { count: 4, indices: [0, 1, 3] },
+    path: { count: 5, indices: [0, 2, 4] },
+    cross: { count: 10, indices: [2, 7, 9] },
+  }
+  const spreadId = (value as Partial<TarotReading> | null)?.spreadId
+  const old = typeof spreadId === 'string' ? legacy[spreadId] : undefined
+  if (!old || !validReadingLength(value, old.count)) return null
+  return { ...value, cards: old.indices.map((index) => ({ ...value.cards[index]! })) }
 }
 const positionQuestions: Record<string, string> = {
   '지금 필요한 시선': '가장 먼저 눈에 들어온 단어를 지금 내 상황과 연결해 보세요.',

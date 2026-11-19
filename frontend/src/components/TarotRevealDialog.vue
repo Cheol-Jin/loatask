@@ -96,7 +96,7 @@ defineExpose({ show })
         </p>
         <form method="dialog" class="tarot-reveal-actions">
           <button :type="ready ? 'submit' : 'button'" autofocus @click="skipMotion">
-            {{ ready ? (last ? '전체 해석 보기' : '다음 카드 고르기') : '연출 건너뛰기' }}
+            {{ ready ? (last ? '종합 결론 보기' : '다음 카드 고르기') : '연출 건너뛰기' }}
           </button>
         </form>
       </div>
