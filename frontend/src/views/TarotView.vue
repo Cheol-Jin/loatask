@@ -40,6 +40,13 @@ const activeTopic = ref(topicId.value)
 const activeSpread = ref(spreadId.value)
 const reading = ref<TarotReading | null>(null)
 const picking = ref(false)
+const pendingResultButton = ref<HTMLButtonElement | null>(null)
+const resultPending = computed(
+  () =>
+    stage.value === 'draw' &&
+    !!reading.value &&
+    picks.value.length === activeLayout.value.positions.length,
+)
 const reduceCardMotion = ref(false)
 const revealDialog = ref<InstanceType<typeof TarotRevealDialog> | null>(null)
 let disposed = false
@@ -80,7 +87,7 @@ async function start() {
   }
 }
 async function pick(card: DrawnTarotCard, event?: MouseEvent, immediate = false) {
-  if (stage.value !== 'draw' || picking.value || isPicked(card.cardId)) return
+  if (stage.value !== 'draw' || picking.value || resultPending.value || isPicked(card.cardId)) return
   const source = (event?.currentTarget as HTMLElement | undefined)
     ?.querySelector('svg')
     ?.getBoundingClientRect()
@@ -100,34 +107,47 @@ async function pick(card: DrawnTarotCard, event?: MouseEvent, immediate = false)
       store.save(result)
       reading.value = result
     }
-    if (!immediate)
-      await revealDialog.value?.show(
+    let confirmed = false
+    if (!immediate || complete)
+      confirmed = !!(await revealDialog.value?.show(
         readTarotCard(result, picks.value.length - 1),
         source,
         complete,
-        reduceCardMotion.value,
-      )
+        reduceCardMotion.value || immediate,
+      ))
     if (disposed) return
-    if (complete) {
+    if (complete && confirmed) {
       stage.value = 'result'
       status.value = ''
       await nextTick()
       resultHeading.value?.focus()
       resultHeading.value?.scrollIntoView({ block: 'start' })
+    } else if (complete) {
+      status.value = '카드를 모두 골랐습니다. 결과 확인하기를 눌러 주세요.'
     } else {
       status.value = `${picks.value.length}장 선택했습니다. ${activeLayout.value.positions.length - picks.value.length}장 더 골라 주세요.`
     }
   } finally {
     picking.value = false
     await nextTick()
-    if (!disposed && stage.value === 'draw')
-      drawButtons.value.find((button) => button && !button.disabled)?.focus()
+    if (!disposed && stage.value === 'draw') {
+      if (resultPending.value) pendingResultButton.value?.focus()
+      else drawButtons.value.find((button) => button && !button.disabled)?.focus()
+    }
   }
+}
+async function confirmResult() {
+  if (!resultPending.value) return
+  stage.value = 'result'
+  status.value = ''
+  await nextTick()
+  resultHeading.value?.focus()
+  resultHeading.value?.scrollIntoView({ block: 'start' })
 }
 async function autoPick() {
   // 이미 고른 카드는 유지하고, 섞어 둔 덱에서 나머지를 채웁니다.
   for (const card of pool.value.filter((item) => !isPicked(item.cardId))) {
-    if (stage.value !== 'draw') break
+    if (stage.value !== 'draw' || resultPending.value) break
     await pick(card, undefined, true)
   }
 }
@@ -310,7 +330,7 @@ async function restore() {
               type="button"
               class="draw-card"
               :class="{ picked: isPicked(card.cardId) }"
-              :disabled="isPicked(card.cardId) || picking"
+              :disabled="isPicked(card.cardId) || picking || resultPending"
               :aria-label="
                 isPicked(card.cardId)
                   ? `${index + 1}번 카드: ${cardName(card.cardId)}`
@@ -329,7 +349,23 @@ async function restore() {
             </button>
           </div>
           <div class="actions">
-            <button type="button" class="primary-action" :disabled="picking" @click="autoPick">
+            <button
+              v-if="resultPending"
+              ref="pendingResultButton"
+              type="button"
+              class="primary-action"
+              :disabled="picking"
+              @click="confirmResult"
+            >
+              결과 확인하기
+            </button>
+            <button
+              v-else
+              type="button"
+              class="primary-action"
+              :disabled="picking"
+              @click="autoPick"
+            >
               남은 카드 한 번에 고르기</button
             ><button type="button" class="text-action" :disabled="picking" @click="edit">
               주제와 배열 바꾸기
@@ -365,8 +401,8 @@ async function restore() {
             <p>{{ conclusion.nextStep }}</p>
             <p class="topic-action">{{ conclusion.topicAction }}</p>
           </section>
-          <details class="reading-details">
-            <summary>카드별 자세한 해석 보기</summary>
+          <section class="reading-details">
+            <h3>고른 카드의 해석</h3>
             <ol class="reading-grid" role="list">
               <li v-for="(item, index) in readings" :key="item.card.id">
                 <article class="reading-card">
@@ -379,7 +415,7 @@ async function restore() {
                     <p class="position-label">
                       {{ String(index + 1).padStart(2, '0') }} · {{ item.position }}
                     </p>
-                    <h3>{{ item.card.name }}</h3>
+                    <h4>{{ item.card.name }}</h4>
                     <p class="card-subtitle">
                       {{ item.card.subtitle }}
                       <span>{{ item.reversed ? '역방향' : '정방향' }}</span>
@@ -396,7 +432,7 @@ async function restore() {
                 </article>
               </li>
             </ol>
-          </details>
+          </section>
           <div class="actions">
             <button type="button" class="primary-action" @click="edit">새로운 상담 시작하기</button
             ><RouterLink class="text-action" to="/fortune">욤의 운세 보러 가기</RouterLink>
@@ -637,7 +673,7 @@ h2 {
   font-size: 0.75rem;
   margin-block-end: 8px;
 }
-.reading-card h3 {
+.reading-card h4 {
   font-size: 1.5rem;
   letter-spacing: -0.04em;
   font-weight: 500;
@@ -739,11 +775,9 @@ h2 {
 .reading-details {
   margin-block: 24px;
 }
-.reading-details summary {
-  display: list-item;
+.reading-details > h3 {
   min-block-size: 48px;
   padding-block: 12px;
-  cursor: pointer;
   color: var(--salon-accent);
 }
 @media (max-width: 600px) {

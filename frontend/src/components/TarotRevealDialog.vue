@@ -11,7 +11,7 @@ const item = ref<ReturnType<typeof readTarotCard> | null>(null)
 const ready = ref(false)
 const last = ref(false)
 let motion: RevealMotion | null = null
-let resolveClose: (() => void) | null = null
+let resolveClose: ((confirmed: boolean) => void) | null = null
 let generation = 0
 
 async function show(
@@ -26,7 +26,7 @@ async function show(
   const current = ++generation
   await nextTick()
   if (!dialog.value || !flight.value || !flip.value) return
-  const closed = new Promise<void>((resolve) => {
+  const closed = new Promise<boolean>((resolve) => {
     resolveClose = resolve
   })
   dialog.value.showModal()
@@ -36,7 +36,7 @@ async function show(
   void motion.finished.then(() => {
     if (generation === current && dialog.value?.open) ready.value = true
   })
-  await closed
+  return await closed
 }
 function skipMotion(event: MouseEvent) {
   if (!ready.value) {
@@ -50,8 +50,9 @@ function closed() {
   generation++
   motion?.cancel()
   motion = null
+  const confirmed = dialog.value?.returnValue === 'confirm'
   if (dialog.value) dialog.value.returnValue = ''
-  resolveClose?.()
+  resolveClose?.(confirmed)
   resolveClose = null
 }
 onBeforeUnmount(closed)
@@ -95,8 +96,8 @@ defineExpose({ show })
           }}
         </p>
         <form method="dialog" class="tarot-reveal-actions">
-          <button :type="ready ? 'submit' : 'button'" autofocus @click="skipMotion">
-            {{ ready ? (last ? '종합 결론 보기' : '다음 카드 고르기') : '연출 건너뛰기' }}
+          <button :type="ready ? 'submit' : 'button'" value="confirm" autofocus @click="skipMotion">
+            {{ ready ? (last ? '결과 확인하기' : '다음 카드 고르기') : '연출 건너뛰기' }}
           </button>
         </form>
       </div>
