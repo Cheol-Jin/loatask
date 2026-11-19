@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, useId } from 'vue'
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, useId } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import TarotArtwork from '@/components/TarotArtwork.vue'
+import TarotRevealDialog from '@/components/TarotRevealDialog.vue'
 import TarotChoiceArtwork from '@/components/TarotChoiceArtwork.vue'
 import '@/assets/tarot/night.css'
 import {
@@ -38,6 +39,12 @@ const activeTopic = ref(topicId.value)
 const activeSpread = ref(spreadId.value)
 const reading = ref<TarotReading | null>(null)
 const picking = ref(false)
+const reduceCardMotion = ref(false)
+const revealDialog = ref<InstanceType<typeof TarotRevealDialog> | null>(null)
+let disposed = false
+onBeforeUnmount(() => {
+  disposed = true
+})
 const resultHeading = ref<HTMLHeadingElement | null>(null)
 const drawHeading = ref<HTMLHeadingElement | null>(null)
 const setupHeading = ref<HTMLHeadingElement | null>(null)
@@ -70,21 +77,36 @@ async function start() {
     error.value = '카드를 펼치지 못했습니다. 다시 시도해 주세요.'
   }
 }
-async function pick(card: DrawnTarotCard) {
+async function pick(card: DrawnTarotCard, event?: MouseEvent, immediate = false) {
   if (stage.value !== 'draw' || picking.value || isPicked(card.cardId)) return
+  const source = (event?.currentTarget as HTMLElement | undefined)
+    ?.querySelector('svg')
+    ?.getBoundingClientRect()
   picking.value = true
   try {
     picks.value.push({ ...card })
-    if (picks.value.length === activeLayout.value.positions.length) {
-      const result: TarotReading = {
-        version: 1,
-        topicId: activeTopic.value,
-        spreadId: activeSpread.value,
-        createdAt: new Date().toISOString(),
-        cards: picks.value.map((item) => ({ ...item })),
-      }
+    const result: TarotReading = {
+      version: 1,
+      topicId: activeTopic.value,
+      spreadId: activeSpread.value,
+      createdAt: new Date().toISOString(),
+      cards: picks.value.map((item) => ({ ...item })),
+    }
+    const complete = picks.value.length === activeLayout.value.positions.length
+    if (complete) {
+      // 마지막 카드는 연출 중 이동해도 복원할 수 있도록 먼저 저장합니다.
       store.save(result)
       reading.value = result
+    }
+    if (!immediate)
+      await revealDialog.value?.show(
+        readTarotCard(result, picks.value.length - 1),
+        source,
+        complete,
+        reduceCardMotion.value,
+      )
+    if (disposed) return
+    if (complete) {
       stage.value = 'result'
       status.value = ''
       await nextTick()
@@ -95,15 +117,15 @@ async function pick(card: DrawnTarotCard) {
   } finally {
     picking.value = false
     await nextTick()
-    if (stage.value === 'draw')
-      drawButtons.value.find((button) => button && !button.disabled)?.focus({ preventScroll: true })
+    if (!disposed && stage.value === 'draw')
+      drawButtons.value.find((button) => button && !button.disabled)?.focus()
   }
 }
 async function autoPick() {
   // 이미 고른 카드는 유지하고, 섞어 둔 덱에서 나머지를 채웁니다.
   for (const card of pool.value.filter((item) => !isPicked(item.cardId))) {
     if (stage.value !== 'draw') break
-    await pick(card)
+    await pick(card, undefined, true)
   }
 }
 async function edit() {
@@ -269,6 +291,9 @@ async function restore() {
               </p>
             </div>
           </div>
+          <label class="motion-choice"
+            ><input v-model="reduceCardMotion" type="checkbox" /> 카드 연출 줄이기</label
+          >
           <div class="draw-grid">
             <button
               v-for="(card, index) in pool"
@@ -287,7 +312,7 @@ async function restore() {
                   ? `${index + 1}번 카드: ${cardName(card.cardId)}`
                   : `${index + 1}번 카드 고르기`
               "
-              @click="pick(card)"
+              @click="pick(card, $event)"
             >
               <span class="draw-number">{{ String(index + 1).padStart(2, '0') }}</span
               ><TarotArtwork
@@ -302,7 +327,9 @@ async function restore() {
           <div class="actions">
             <button type="button" class="primary-action" :disabled="picking" @click="autoPick">
               남은 카드 한 번에 고르기</button
-            ><button type="button" class="text-action" @click="edit">주제와 배열 바꾸기</button>
+            ><button type="button" class="text-action" :disabled="picking" @click="edit">
+              주제와 배열 바꾸기
+            </button>
           </div>
         </section>
 
@@ -368,6 +395,7 @@ async function restore() {
         </footer>
       </div>
     </v-container>
+    <TarotRevealDialog ref="revealDialog" />
   </v-main>
 </template>
 
@@ -492,6 +520,22 @@ h2 {
   color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 5px;
+}
+.motion-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 48px;
+  inline-size: fit-content;
+  margin-block-end: 12px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.motion-choice input {
+  inline-size: 18px;
+  block-size: 18px;
+  accent-color: var(--salon-accent);
 }
 .draw-grid {
   display: grid;
