@@ -24,7 +24,7 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
-  <section aria-labelledby="home-fortune-title">
+  <article class="home-activity" aria-labelledby="home-fortune-title">
     <div class="section-heading">
       <h2 id="home-fortune-title">욤의 오늘의 운세</h2>
       <span>잠깐 쉬어가기</span>
@@ -41,11 +41,16 @@ onBeforeUnmount(() => {
       }}
     </p>
     <RouterLink class="fortune-link" to="/fortune">운세 보러 가기 →</RouterLink>
-    <RouterLink class="fortune-link tarot-link" to="/tarot">네리아의 고민 상담실 →</RouterLink>
-  </section>
+  </article>
 </template>
 <style scoped>
+.home-activity {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
 .fortune-preview {
+  min-block-size: 120px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -65,16 +70,15 @@ p {
   margin: 16px 0;
 }
 .fortune-link {
+  min-block-size: 48px;
   display: block;
+  margin-block-start: auto;
   border: 1px solid var(--line);
   color: var(--text);
   padding: 12px 16px;
   font-size: 13px;
   text-align: center;
   text-decoration: none;
-}
-.tarot-link {
-  margin-top: 10px;
 }
 .fortune-link:hover {
   border-color: var(--accent);

@@ -2,6 +2,7 @@
 import { onMounted, ref, computed, watch } from 'vue'
 import HomeNews from '@/components/HomeNews.vue'
 import HomeFortune from '@/components/HomeFortune.vue'
+import HomeTarot from '@/components/HomeTarot.vue'
 import { useRecentSearchStore } from '@/stores/recentSearchStore'
 import CharacterProfile from '@/components/CharacterProfile.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
@@ -233,6 +234,7 @@ const searchPopularCharacter = async (characterName: string) => {
             </ol>
             <p class="ranking-note">전체 누적 검색 횟수 기준입니다.</p>
           </section>
+          <HomeTarot v-if="!hasQuery" />
           <HomeFortune v-if="!hasQuery" />
         </aside>
       </div>
@@ -272,10 +274,10 @@ const searchPopularCharacter = async (characterName: string) => {
   display: block !important;
 }
 .home-layout .sidebar {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 32px;
 }
-.home-layout .sidebar > section {
+.home-layout .sidebar > :is(section, article) {
   border-top: 1px solid var(--line);
   padding-top: 20px;
 }
