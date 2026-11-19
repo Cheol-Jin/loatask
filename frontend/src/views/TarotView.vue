@@ -376,18 +376,6 @@ async function restore() {
   --salon-accent: #d9c398;
   max-width: 1120px;
 }
-.room-heading {
-  text-align: center;
-  margin-block-end: 32px;
-}
-.room-back {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: 48px;
-  font-size: 0.8125rem;
-  color: var(--muted);
-  margin-block-end: 24px;
-}
 .eyebrow {
   font-size: 0.625rem;
   letter-spacing: 0.2em;
