@@ -21,8 +21,7 @@ const hasQuery = computed(
   () => typeof route.query.character === 'string' && !!route.query.character.trim(),
 )
 const characterStore = useCharacterStore()
-const { searchedProfile, isSearching, errorMessage, searchPhase, elapsedSeconds } =
-  storeToRefs(characterStore)
+const { searchedProfile, isSearching, errorMessage } = storeToRefs(characterStore)
 
 const searchKeyword = ref<string | null>('')
 
@@ -132,20 +131,9 @@ const searchPopularCharacter = async (characterName: string) => {
           >검색</v-btn
         >
       </form>
-      <v-alert v-if="isSearching" type="info" variant="tonal" class="mb-6">
-        <p role="status">
-          {{
-            searchPhase === 'connecting'
-              ? '캐릭터 조회 서버에 연결하고 있습니다.'
-              : '캐릭터 정보를 조회하고 있습니다.'
-          }}
-        </p>
-        <p v-if="searchPhase === 'connecting' && elapsedSeconds >= 5">
-          절전 중인 무료 서버는 시작에 1~3분 정도 걸릴 수 있습니다.
-        </p>
-        <span>{{ elapsedSeconds }}초 경과</span>
-        <v-btn variant="text" @click="characterStore.cancelSearch()">검색 취소</v-btn>
-      </v-alert>
+      <div v-if="isSearching" class="mb-4">
+        <v-btn type="button" variant="text" @click="characterStore.cancelSearch()">검색 취소</v-btn>
+      </div>
       <div v-if="recent.names.length" class="recent-searches" aria-label="최근 검색">
         <span>최근 검색</span>
         <button v-for="name in recent.names" :key="name" @click="searchPopularCharacter(name)">

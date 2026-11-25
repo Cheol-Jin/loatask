@@ -15,18 +15,13 @@ export const useCharacterStore = defineStore('character', () => {
   const isLoading = ref(false)
   const isSearching = ref(false)
   const errorMessage = ref('')
-  const searchPhase = ref<'connecting' | 'profile'>('connecting')
-  const elapsedSeconds = ref(0)
   let searchRequestId = 0
   let activeController: AbortController | undefined
-  let activeTimer: ReturnType<typeof setInterval> | undefined
 
   const cancelSearch = (notify = true) => {
     searchRequestId++
     activeController?.abort()
     activeController = undefined
-    clearInterval(activeTimer)
-    activeTimer = undefined
     isSearching.value = false
     if (notify) errorMessage.value = '검색을 취소했습니다. 다시 검색하실 수 있습니다.'
   }
@@ -50,7 +45,6 @@ export const useCharacterStore = defineStore('character', () => {
     const requestId = searchRequestId
     searchedProfile.value = null
     errorMessage.value = ''
-    elapsedSeconds.value = 0
 
     if (!characterName.trim()) {
       errorMessage.value = '캐릭터명을 입력해 주세요.'
@@ -59,16 +53,10 @@ export const useCharacterStore = defineStore('character', () => {
 
     const controller = new AbortController()
     activeController = controller
-    const startedAt = Date.now()
-    activeTimer = setInterval(() => {
-      elapsedSeconds.value = Math.floor((Date.now() - startedAt) / 1_000)
-    }, 1_000)
     try {
       isSearching.value = true
-      searchPhase.value = 'connecting'
       await prepareCharacterSearch(controller.signal)
       if (requestId !== searchRequestId) return false
-      searchPhase.value = 'profile'
       const profile = await getCharacterProfile(characterName, { signal: controller.signal })
       if (requestId !== searchRequestId) return false
       searchedProfile.value = profile
@@ -78,8 +66,6 @@ export const useCharacterStore = defineStore('character', () => {
       return false
     } finally {
       if (requestId === searchRequestId) {
-        clearInterval(activeTimer)
-        activeTimer = undefined
         activeController = undefined
         isSearching.value = false
       }
@@ -94,8 +80,6 @@ export const useCharacterStore = defineStore('character', () => {
 
   return {
     cancelSearch,
-    searchPhase,
-    elapsedSeconds,
     clearSearch,
     characters,
     searchedProfile,

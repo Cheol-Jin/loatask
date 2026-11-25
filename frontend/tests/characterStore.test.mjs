@@ -54,7 +54,7 @@ test('서버 준비가 끝난 뒤에만 이다 프로필을 요청한다', async
     },
   })
   const pending = store.searchCharacter('이다')
-  assert.equal(store.searchPhase, 'connecting')
+  assert.equal(store.isSearching, true)
   assert.equal(called, false)
   waiting.resolve()
   assert.equal(await pending, true)
